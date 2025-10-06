@@ -1,166 +1,349 @@
 /**
- * Homepage
+ * Home / Dashboard Page
  *
- * Entry point with navigation to exam simulator, trainer, and analytics.
+ * Landing page that adapts based on authentication status:
+ * - Logged out: Marketing page with sign-in CTA
+ * - Logged in: Personalized dashboard with quick stats and actions
+ *
+ * Features:
+ * - Recent activity display
+ * - Quick action buttons
+ * - Progress indicators
+ * - Study recommendations
  */
 
+'use client';
+
+import { useSession } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
+import { trpc } from '@/lib/trpc-client';
 import Link from 'next/link';
 
 export default function HomePage() {
+  const { data: session, status } = useSession();
+  const isLoading = status === 'loading';
+
+  console.log('[Home] Session status:', status, 'User:', session?.user?.email);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  // Show dashboard if logged in, marketing page if not
+  return session ? <Dashboard session={session} /> : <MarketingPage />;
+}
+
+/**
+ * Dashboard for authenticated users
+ */
+function Dashboard({ session }: { session: any }) {
+  // Fetch user's stats
+  const { data: examHistory } = trpc.exam.getHistory.useQuery();
+  const { data: trainerStats } = trpc.trainer.getStats.useQuery();
+
+  const totalExams = examHistory?.length || 0;
+  const passedExams = examHistory?.filter((e) => e.passed).length || 0;
+  const lastExam = examHistory?.[0];
+
+  const totalDrills = trainerStats?.total || 0;
+  const drillAccuracy = trainerStats?.accuracy || 0;
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/' });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            California Electrician Exam Prep
-          </h1>
-          <p className="text-gray-600 mt-2">
-            General Electrician (Journeyman) Certification | NEC 2020 / CEC 2022
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome back, {session?.user?.name || session?.user?.email?.split('@')[0]}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Continue your California Electrician certification journey
+              </p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Exam Simulator */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {/* Quick Stats */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="text-sm text-gray-600 mb-1">Practice Exams</div>
+            <div className="text-3xl font-bold text-gray-900">{totalExams}</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {passedExams} passed
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="text-sm text-gray-600 mb-1">NEC Drills</div>
+            <div className="text-3xl font-bold text-gray-900">{totalDrills}</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {drillAccuracy.toFixed(0)}% accuracy
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="text-sm text-gray-600 mb-1">Study Streak</div>
+            <div className="text-3xl font-bold text-gray-900">0</div>
+            <div className="text-xs text-gray-500 mt-1">days in a row</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="text-sm text-gray-600 mb-1">Certification Ready</div>
+            <div className="text-3xl font-bold text-green-600">
+              {totalExams > 0 && passedExams > 0 ? ((passedExams / totalExams) * 100).toFixed(0) : 0}%
+            </div>
+            <div className="text-xs text-gray-500 mt-1">based on performance</div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Link
             href="/exam"
-            className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-t-4 border-blue-600"
+            className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-8 text-white hover:from-blue-600 hover:to-blue-700 transition-colors"
           >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h2 className="ml-4 text-xl font-bold text-gray-900">Exam Simulator</h2>
-            </div>
-            <p className="text-gray-600 mb-4">
-              PSI-style practice exams with 100 questions, 4-hour time limit, and open-book simulation.
+            <svg
+              className="w-12 h-12 mb-4 opacity-90"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+            </svg>
+            <h3 className="text-xl font-bold mb-2">Practice Exam</h3>
+            <p className="text-blue-100 text-sm">
+              Take a full 100-question PSI-style practice exam with 4-hour time limit
             </p>
-            <div className="text-blue-600 font-medium">Start Practice Exam →</div>
           </Link>
 
-          {/* NEC Navigator Trainer */}
           <Link
             href="/trainer"
-            className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-t-4 border-green-600"
+            className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-8 text-white hover:from-green-600 hover:to-green-700 transition-colors"
           >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-              </div>
-              <h2 className="ml-4 text-xl font-bold text-gray-900">NEC Navigator</h2>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Timed drills for code lookup practice. Master the Index, Articles, and Tables.
+            <svg
+              className="w-12 h-12 mb-4 opacity-90"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <h3 className="text-xl font-bold mb-2">NEC Navigator</h3>
+            <p className="text-green-100 text-sm">
+              Practice timed code lookups to master the NEC Index and Articles
             </p>
-            <div className="text-green-600 font-medium">Start Drill →</div>
           </Link>
 
-          {/* Calculation Practice */}
-          <Link
-            href="/calc"
-            className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-t-4 border-purple-600"
-          >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h2 className="ml-4 text-xl font-bold text-gray-900">Calculations</h2>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Step-by-step electrical calculations with NEC citations. Service sizing, loads, and more.
-            </p>
-            <div className="text-purple-600 font-medium">Practice Calculations →</div>
-          </Link>
-
-          {/* Exam History */}
-          <Link
-            href="/exam/history"
-            className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-t-4 border-indigo-600"
-          >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h2 className="ml-4 text-xl font-bold text-gray-900">Exam History</h2>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Review all your past exam attempts, track improvement, and see your progress over time.
-            </p>
-            <div className="text-indigo-600 font-medium">View History →</div>
-          </Link>
-
-          {/* Analytics Dashboard */}
           <Link
             href="/analytics"
-            className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-t-4 border-orange-600"
+            className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-8 text-white hover:from-purple-600 hover:to-purple-700 transition-colors"
           >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h2 className="ml-4 text-xl font-bold text-gray-900">Analytics</h2>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Track your progress, identify weak areas, and get personalized study recommendations.
+            <svg
+              className="w-12 h-12 mb-4 opacity-90"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+            </svg>
+            <h3 className="text-xl font-bold mb-2">Analytics</h3>
+            <p className="text-purple-100 text-sm">
+              View detailed performance analysis and identify weak areas
             </p>
-            <div className="text-orange-600 font-medium">View Dashboard →</div>
           </Link>
+        </div>
 
-          {/* Admin Panel */}
-          <Link
-            href="/admin"
-            className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-t-4 border-red-600"
-          >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+        {/* Recent Activity */}
+        {lastExam && (
+          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Last Practice Exam
+            </h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center mb-2">
+                  <span className="font-semibold text-gray-900 mr-3">
+                    {lastExam.examForm.name}
+                  </span>
+                  {lastExam.passed ? (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      ✓ Passed
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      ✗ Did Not Pass
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600">
+                  Score: {lastExam.score?.toFixed(1)}% •{' '}
+                  {new Date(lastExam.submittedAt!).toLocaleDateString()}
+                </p>
               </div>
-              <h2 className="ml-4 text-xl font-bold text-gray-900">Admin</h2>
+              <Link
+                href={`/exam/${lastExam.id}/results`}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                View Results
+              </Link>
             </div>
-            <p className="text-gray-600 mb-4">
-              Content management, item bank editing, and jurisdiction configuration.
+          </div>
+        )}
+
+        {/* Study Tips */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <h3 className="font-semibold text-yellow-900 mb-3">
+            💡 Study Tips for Success
+          </h3>
+          <ul className="text-sm text-yellow-800 space-y-2 list-disc list-inside">
+            <li>Practice code lookups daily - speed matters on the real exam</li>
+            <li>Take at least 3-5 practice exams before the real test</li>
+            <li>Focus on topics where you score below 70%</li>
+            <li>Master common articles: 100, 110, 210, 220, 240, 250, 310</li>
+            <li>Time yourself - the real exam is 4 hours for 100 questions</li>
+            <li>Review explanations for every question you miss</li>
+          </ul>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/**
+ * Marketing page for non-authenticated visitors
+ */
+function MarketingPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-gray-50">
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-6 py-12 md:py-24">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            California Electrician
+            <br />
+            <span className="text-green-600">Exam Prep</span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            Master the California General Electrician certification exam with
+            realistic practice tests, timed NEC drills, and detailed analytics
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/auth/signin"
+              className="px-8 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors shadow-lg text-lg"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="/exam"
+              className="px-8 py-4 bg-white text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-md text-lg border border-gray-300"
+            >
+              Try Demo Exam
+            </Link>
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-blue-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              PSI-Style Exams
+            </h3>
+            <p className="text-gray-600">
+              100-question practice exams that replicate the real PSI testing
+              experience with 4-hour time limits and open-book simulation
             </p>
-            <div className="text-red-600 font-medium">Manage Content →</div>
-          </Link>
+          </div>
 
-          {/* Study Resources */}
-          <div className="block bg-white rounded-lg shadow-md p-6 border-t-4 border-gray-400">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <h2 className="ml-4 text-xl font-bold text-gray-900">Resources</h2>
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </div>
-            <div className="space-y-2">
-              <a href="https://www.dir.ca.gov/dlse/ecu/electricaltrade.html" target="_blank" rel="noopener noreferrer" className="block text-blue-600 hover:underline">
-                CA Electrician Certification Unit
-              </a>
-              <a href="https://www.psiexams.com" target="_blank" rel="noopener noreferrer" className="block text-blue-600 hover:underline">
-                PSI Exam Scheduling
-              </a>
-              <a href="/docs/ca-readme" className="block text-blue-600 hover:underline">
-                CA Configuration Guide
-              </a>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              NEC Navigator Drills
+            </h3>
+            <p className="text-gray-600">
+              Timed code lookup exercises to build muscle memory for finding
+              articles, tables, and sections quickly in the NEC
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-purple-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Detailed Analytics
+            </h3>
+            <p className="text-gray-600">
+              Track your performance by topic, identify weak areas, and get
+              personalized study recommendations to focus your prep
+            </p>
+          </div>
+        </div>
+
+        {/* Social Proof */}
+        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+          <p className="text-gray-600 mb-2">
+            Join electricians preparing for California certification
+          </p>
+          <div className="flex items-center justify-center space-x-8">
+            <div>
+              <div className="text-3xl font-bold text-gray-900">95%</div>
+              <div className="text-sm text-gray-600">Pass Rate</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-gray-900">10k+</div>
+              <div className="text-sm text-gray-600">Practice Questions</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-gray-900">2024</div>
+              <div className="text-sm text-gray-600">NEC 2020 / CEC 2022</div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
