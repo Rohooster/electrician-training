@@ -30,6 +30,9 @@ model User {
   drills        Drill[]
   abilitySnapshots AbilitySnapshot[]
   topicMastery  TopicMastery[]
+  learningPaths LearningPath[]
+  conceptMastery ConceptMastery[]
+  adaptiveAssessments AdaptiveAssessment[]
 
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -108,6 +111,8 @@ model Jurisdiction {
   items             Item[]
   calcTemplates     CalcTemplate[]
   examForms         ExamForm[]
+  concepts          Concept[]
+  adaptiveAssessments AdaptiveAssessment[]
 
   isActive          Boolean       @default(true)
   createdAt         DateTime      @default(now())
@@ -217,6 +222,9 @@ model Item {
 
   responses         Response[]
   formItems         FormItem[]
+  embedding         ItemEmbedding?
+  concepts          ConceptItem[]
+  pathSteps         LearningPathStep[]
 
   isActive          Boolean         @default(true)
   createdAt         DateTime        @default(now())
@@ -524,4 +532,300 @@ model TopicMastery {
   @@unique([userId, topic])
   @@index([userId, masteryPercent])
   @@map("topic_mastery")
+}
+
+// ============================================================================
+// VECTOR EMBEDDINGS & SEMANTIC SEARCH (pgvector extension required)
+// ============================================================================
+// Note: Run this SQL first: CREATE EXTENSION IF NOT EXISTS vector;
+
+model ItemEmbedding {
+  id              String   @id @default(cuid())
+
+  itemId          String   @unique
+  item            Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  // Vector embedding stored as JSON for Prisma compatibility
+  // In PostgreSQL, this will be vector(1536) type via raw SQL
+  embedding       Json     // Array of 1536 floats
+
+  // Metadata for regeneration
+  embeddingModel  String   @default("text-embedding-ada-002")
+  embeddingSource String   @default("stem_explanation") // "stem_only", "stem_options", "stem_explanation"
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("item_embeddings")
+  @@index([itemId])
+}
+
+// ============================================================================
+// CONCEPT MANAGEMENT (Learning Objectives & Knowledge Graph)
+// ============================================================================
+
+model Concept {
+  id              String   @id @default(cuid())
+
+  // Basic info
+  slug            String   @unique // "grounding-electrode-conductor-sizing"
+  name            String   // "Grounding Electrode Conductor Sizing"
+  description     String   // Detailed explanation
+
+  // Jurisdictional scope
+  jurisdictionId  String
+  jurisdiction    Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+
+  // NEC references this concept covers
+  necArticleRefs  Json     // ["250.66", "Table 250.66"]
+
+  // Concept classification
+  category        String   // "grounding_bonding", "conductor_sizing", etc.
+  difficultyLevel DifficultyLevel @default(MEDIUM)
+
+  // Estimated study time (minutes)
+  estimatedMinutes Int    @default(30)
+
+  // Vector embedding stored as JSON for Prisma compatibility
+  embedding       Json?    // Array of 1536 floats
+
+  // Relations
+  items           ConceptItem[]
+  prerequisites   ConceptPrerequisite[] @relation("ConceptPrerequisites")
+  dependents      ConceptPrerequisite[] @relation("ConceptDependents")
+  pathSteps       LearningPathStep[]
+  userMastery     ConceptMastery[]
+
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("concepts")
+  @@index([category])
+  @@index([jurisdictionId])
+}
+
+// Many-to-many: Items can cover multiple concepts
+model ConceptItem {
+  id              String   @id @default(cuid())
+
+  conceptId       String
+  concept         Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  itemId          String
+  item            Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  // How well this item tests this concept (0-1)
+  relevanceScore  Float    @default(1.0)
+
+  // Specific aspect of concept this item tests
+  aspect          String?  // "calculation", "code_lookup", "theory"
+
+  createdAt       DateTime @default(now())
+
+  @@unique([conceptId, itemId])
+  @@map("concept_items")
+}
+
+// Prerequisite graph (DAG - Directed Acyclic Graph)
+model ConceptPrerequisite {
+  id              String   @id @default(cuid())
+
+  // conceptId REQUIRES prerequisiteId
+  conceptId       String
+  concept         Concept  @relation("ConceptPrerequisites", fields: [conceptId], references: [id], onDelete: Cascade)
+
+  prerequisiteId  String
+  prerequisite    Concept  @relation("ConceptDependents", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  // Strength of prerequisite relationship (0-1)
+  // 1.0 = must know, 0.5 = helpful but not required
+  strength        Float    @default(1.0)
+
+  createdAt       DateTime @default(now())
+
+  @@unique([conceptId, prerequisiteId])
+  @@map("concept_prerequisites")
+  @@index([conceptId])
+  @@index([prerequisiteId])
+}
+
+// ============================================================================
+// PERSONALIZED LEARNING PATHS
+// ============================================================================
+
+model LearningPath {
+  id              String   @id @default(cuid())
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Generation metadata
+  generatedFrom   String   // "adaptive_assessment", "topic_filter", "manual"
+  generationData  Json     // Stores weak concepts, assessment results, etc.
+
+  // Path metadata
+  name            String   // "Personalized Path: Grounding & Bonding"
+  description     String?
+  estimatedHours  Float?   // Total estimated study time
+
+  // Progress tracking
+  status          PathStatus @default(NOT_STARTED)
+  currentStepId   String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  steps           LearningPathStep[]
+  sourceAssessment AdaptiveAssessment?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("learning_paths")
+  @@index([userId])
+  @@index([status])
+}
+
+enum PathStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model LearningPathStep {
+  id              String   @id @default(cuid())
+
+  pathId          String
+  path            LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+
+  // Step order in path
+  sequence        Int
+
+  // What to study
+  conceptId       String?
+  concept         Concept? @relation(fields: [conceptId], references: [id])
+
+  itemId          String?
+  item            Item?    @relation(fields: [itemId], references: [id])
+
+  // Step type
+  stepType        StepType
+
+  // Step metadata
+  title           String   // "Review: Grounding Basics"
+  description     String?  // "Complete 5 practice questions on grounding fundamentals"
+  estimatedMinutes Int    @default(15)
+
+  // Completion tracking
+  status          StepStatus @default(LOCKED)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  performanceScore Float?   // 0-1 score on this step
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([pathId, sequence])
+  @@map("learning_path_steps")
+  @@index([pathId])
+  @@index([conceptId])
+}
+
+enum StepType {
+  CONCEPT_REVIEW    // Read concept explanation
+  PRACTICE_ITEM     // Answer single question
+  PRACTICE_SET      // Answer set of questions
+  DRILL             // Timed NEC lookup drill
+  CALCULATION       // Calculation practice
+  ASSESSMENT        // Mini-assessment to validate mastery
+}
+
+enum StepStatus {
+  LOCKED            // Prerequisites not met
+  AVAILABLE         // Ready to start
+  IN_PROGRESS       // Started but not completed
+  COMPLETED         // Finished successfully
+  SKIPPED           // User chose to skip
+}
+
+// ============================================================================
+// CONCEPT MASTERY TRACKING
+// ============================================================================
+
+model ConceptMastery {
+  id              String   @id @default(cuid())
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  conceptId       String
+  concept         Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  // Mastery metrics
+  masteryLevel    Float    @default(0.0) // 0-1 scale
+  confidence      Float    @default(0.5) // 0-1 scale (certainty of mastery estimate)
+
+  // Performance data
+  totalAttempts   Int      @default(0)
+  correctCount    Int      @default(0)
+  avgTimeSeconds  Float?
+
+  // IRT-based ability estimate for this concept
+  theta           Float?   // -3 to +3 scale
+
+  // Last practice
+  lastPracticed   DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, conceptId])
+  @@map("concept_mastery")
+  @@index([userId])
+  @@index([masteryLevel])
+}
+
+// ============================================================================
+// ADAPTIVE ASSESSMENT
+// ============================================================================
+
+model AdaptiveAssessment {
+  id              String   @id @default(cuid())
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  jurisdictionId  String
+  jurisdiction    Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+
+  // Assessment config
+  targetItems     Int      @default(20) // Adaptive test length
+  algorithm       String   @default("cat") // "cat" = Computerized Adaptive Testing
+
+  // Results
+  status          AssessmentStatus @default(IN_PROGRESS)
+
+  // Identified weak concepts (vector similarity scores)
+  weakConcepts    Json?    // [{conceptId, score, confidence}]
+
+  // Generated learning path
+  generatedPathId String?  @unique
+  generatedPath   LearningPath? @relation(fields: [generatedPathId], references: [id])
+
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("adaptive_assessments")
+  @@index([userId])
+  @@index([status])
+}
+
+enum AssessmentStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
 }
