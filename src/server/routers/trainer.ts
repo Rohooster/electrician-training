@@ -60,6 +60,30 @@ export const trainerRouter = createTRPCRouter({
     }),
 
   /**
+   * Get drill by ID
+   */
+  getDrill: protectedProcedure
+    .input(
+      z.object({
+        drillId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const drill = await ctx.prisma.drill.findUnique({
+        where: { id: input.drillId },
+      });
+
+      if (!drill || drill.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Drill not found or access denied',
+        });
+      }
+
+      return drill;
+    }),
+
+  /**
    * Submit drill response with navigation path
    */
   submitDrill: protectedProcedure

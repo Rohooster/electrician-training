@@ -192,15 +192,29 @@ export default function ResultsPage(props: PageProps) {
           <h3 className="text-lg font-bold text-gray-900 mb-4">
             Performance by Topic
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {topicPerformance.map((topic) => (
-              <div key={topic.name}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-700">{topic.name}</span>
-                  <span className="text-gray-900 font-medium">
-                    {topic.correct} / {topic.total} ({topic.percentage.toFixed(0)}
-                    %)
-                  </span>
+              <div key={topic.name} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                <div className="flex justify-between items-start text-sm mb-2">
+                  <div className="flex-1">
+                    <span className="text-gray-700 font-medium">{topic.name}</span>
+                    <div className="flex items-center mt-1">
+                      <span className="text-gray-900 font-medium mr-3">
+                        {topic.correct} / {topic.total} ({topic.percentage.toFixed(0)}%)
+                      </span>
+                      {topic.percentage < 70 && (
+                        <Link
+                          href="/trainer"
+                          className="inline-flex items-center text-xs font-medium text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 px-3 py-1 rounded transition-colors"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                          </svg>
+                          Practice This Topic
+                        </Link>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
@@ -223,9 +237,9 @@ export default function ResultsPage(props: PageProps) {
         {!passed && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
             <h3 className="font-semibold text-blue-900 mb-3">
-              Recommendations for Next Attempt
+              📚 Recommendations for Next Attempt
             </h3>
-            <ul className="text-sm text-blue-800 space-y-2 list-disc list-inside">
+            <ul className="text-sm text-blue-800 space-y-2 list-disc list-inside mb-4">
               {topicPerformance
                 .filter((t) => t.percentage < 70)
                 .map((topic) => (
@@ -234,13 +248,37 @@ export default function ResultsPage(props: PageProps) {
                     {topic.percentage.toFixed(0)}%
                   </li>
                 ))}
-              <li>Practice with NEC Navigator drills to improve code lookup speed</li>
               <li>Work through calculation practice problems with step-by-step solutions</li>
               <li>
                 Retake window: {sitting.examForm.jurisdiction.ruleSet.retakeWaitDays}{' '}
                 days after this attempt
               </li>
             </ul>
+            <div className="bg-white border border-blue-300 rounded-lg p-4 flex items-start">
+              <div className="flex-shrink-0 mr-3">
+                <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-gray-900 mb-1">
+                  Improve Your Code Lookup Speed
+                </h4>
+                <p className="text-sm text-gray-700 mb-3">
+                  Many exam questions require quick NEC navigation. Practice with our
+                  timed drills to build muscle memory and find articles faster.
+                </p>
+                <Link
+                  href="/trainer"
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Start NEC Navigator Training
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 
