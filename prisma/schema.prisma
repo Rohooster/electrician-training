@@ -1,0 +1,527 @@
+// Prisma schema for CA Electrician Exam Prep
+// Supports multi-jurisdiction architecture with CA as first implementation
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// AUTHENTICATION & USER MANAGEMENT
+// ============================================================================
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  role          UserRole        @default(STUDENT)
+
+  accounts      Account[]
+  sessions      Session[]
+
+  // Student-specific relations
+  examSittings  ExamSitting[]
+  drills        Drill[]
+  abilitySnapshots AbilitySnapshot[]
+  topicMastery  TopicMastery[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@map("users")
+}
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+  CONTRACTOR
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// JURISDICTION & CODE EDITION MANAGEMENT
+// ============================================================================
+
+model Jurisdiction {
+  id                String        @id @default(cuid())
+  slug              String        @unique // e.g., "ca-general-electrician"
+  name              String        // e.g., "California General Electrician"
+  state             String        // e.g., "CA"
+  certType          String        // e.g., "Journeyman", "General Electrician"
+
+  // Code editions used by this jurisdiction
+  codeEditionId     String
+  codeEdition       CodeEdition   @relation(fields: [codeEditionId], references: [id])
+
+  // Exam rules for this jurisdiction
+  ruleSetId         String        @unique
+  ruleSet           RuleSet       @relation(fields: [ruleSetId], references: [id])
+
+  // Blueprint weights define content distribution
+  blueprintWeights  Json          // { "definitions": 0.15, "conductor_sizing": 0.20, ... }
+
+  items             Item[]
+  calcTemplates     CalcTemplate[]
+  examForms         ExamForm[]
+
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@map("jurisdictions")
+}
+
+model CodeEdition {
+  id                String          @id @default(cuid())
+  slug              String          @unique // e.g., "cec-2022-nec-2020"
+  name              String          // e.g., "CEC 2022 (NEC 2020 base)"
+  baseCode          String          // "NEC"
+  baseYear          Int             // 2020
+  stateAmendment    String?         // "CEC"
+  amendmentYear     Int?            // 2022
+  effectiveDate     DateTime?
+
+  jurisdictions     Jurisdiction[]
+  items             Item[]
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("code_editions")
+}
+
+// RuleSet centralizes CIB (Candidate Information Bulletin) rules for each jurisdiction/vendor combo
+model RuleSet {
+  id                    String        @id @default(cuid())
+
+  // Exam format
+  examVendor            String        // "PSI"
+  questionCount         Int           // 100
+  timeLimitMinutes      Int           // 240 (4 hours)
+  passThresholdPercent  Float         // 70.0
+
+  // Allowed materials (CIB rules)
+  allowedCodeBooks      Json          // ["NEC 2020", "CEC 2022"]
+  allowedCalculator     Boolean       @default(true)
+  calculatorTypes       Json?         // ["basic", "scientific"] (no programmable)
+  allowTabbing          Boolean       @default(true)
+  allowHighlighting     Boolean       @default(true)
+  allowNotes            Boolean       @default(false)
+
+  // Retake & scheduling policies
+  retakeWaitDays        Int?          // 14 days
+  rescheduleHoursBefore Int?          // 24 hours
+  maxAttemptsPerYear    Int?          // null = unlimited
+
+  // Misc rules
+  earlyArrivalMinutes   Int           @default(30)
+  roomScanRequired      Boolean       @default(false) // online proctoring
+
+  jurisdiction          Jurisdiction?
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@map("rule_sets")
+}
+
+// ============================================================================
+// ITEM BANK (Question Repository)
+// ============================================================================
+
+model Item {
+  id                String          @id @default(cuid())
+
+  // Jurisdictional assignment
+  jurisdictionId    String
+  jurisdiction      Jurisdiction    @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
+
+  codeEditionId     String
+  codeEdition       CodeEdition     @relation(fields: [codeEditionId], references: [id])
+
+  // Item content
+  stem              String          // Question text
+  optionA           String
+  optionB           String
+  optionC           String
+  optionD           String
+  correctAnswer     String          // "A" | "B" | "C" | "D"
+  explanation       String?         // Rationale for correct answer
+
+  // Metadata & classification
+  vendorStyle       String          // "PSI" - vendor-specific formatting
+  topic             String          // "conductor_sizing", "grounding_bonding", etc.
+  cognitive         CognitiveType   // "lookup" | "calc" | "theory"
+  difficulty        DifficultyLevel @default(MEDIUM)
+
+  // Code references (critical for edition agility)
+  necArticleRefs    Json            // ["310.16", "Table 310.16", "240.4(D)"]
+  cecAmendmentRefs  Json?           // CA-specific amendments
+
+  // IRT parameters (Item Response Theory for adaptive testing)
+  irtA              Float?          // Discrimination parameter (0.5-2.5)
+  irtB              Float?          // Difficulty parameter (-3 to +3)
+  irtC              Float?          // Guessing parameter (typically 0.25 for 4-option MC)
+
+  // Usage tracking
+  timesUsed         Int             @default(0)
+  avgTimeSeconds    Float?          // Average time to answer
+
+  // Telemetry for lookup items
+  avgLookupTime     Float?          // Time to first code panel open
+
+  responses         Response[]
+  formItems         FormItem[]
+
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([jurisdictionId, topic])
+  @@index([cognitive])
+  @@map("items")
+}
+
+enum CognitiveType {
+  LOOKUP      // Requires code book navigation
+  CALC        // Calculation-based problem
+  THEORY      // Conceptual understanding
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// ============================================================================
+// CALCULATION TEMPLATES
+// ============================================================================
+
+model CalcTemplate {
+  id                String          @id @default(cuid())
+
+  jurisdictionId    String
+  jurisdiction      Jurisdiction    @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
+
+  slug              String          @unique // "dwelling-service-standard-calc"
+  name              String          // "Dwelling Service Calculation (Standard Method)"
+  category          String          // "service_calc", "conductor_sizing", "conduit_fill", etc.
+
+  // Template definition
+  parameterSchema   Json            // { "dwelling_area_sqft": { "min": 1000, "max": 5000, "step": 100 }, ... }
+  solutionAlgorithm Json            // Step-by-step calculation logic
+
+  // Code references
+  necArticleRefs    Json            // ["220.82", "220.83", "Table 220.82"]
+
+  // For seeded generation
+  seedMultiplier    Int             @default(1000) // Deterministic seed base
+
+  generatedItems    Item[]          @relation("CalcTemplateToItem")
+
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("calc_templates")
+}
+
+// Relation table for calc template to item (many-to-many)
+model _CalcTemplateToItem {
+  A String
+  B String
+
+  @@unique([A, B])
+  @@index([B])
+  @@map("_CalcTemplateToItem")
+}
+
+// ============================================================================
+// EXAM FORMS & SITTINGS
+// ============================================================================
+
+model ExamForm {
+  id                String          @id @default(cuid())
+
+  jurisdictionId    String
+  jurisdiction      Jurisdiction    @relation(fields: [jurisdictionId], references: [id])
+
+  name              String          // "CA General Practice Test #1"
+  description       String?
+
+  // Form composition - items with position
+  formItems         FormItem[]
+
+  // Metadata
+  targetDifficulty  Float?          // Target avg IRT b-param
+  blueprintMatch    Json            // How well this form matches blueprint weights
+
+  isPublished       Boolean         @default(false)
+  publishedAt       DateTime?
+
+  sittings          ExamSitting[]
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("exam_forms")
+}
+
+// Junction table: ExamForm <-> Item with position
+model FormItem {
+  id                String          @id @default(cuid())
+
+  examFormId        String
+  examForm          ExamForm        @relation(fields: [examFormId], references: [id], onDelete: Cascade)
+
+  itemId            String
+  item              Item            @relation(fields: [itemId], references: [id])
+
+  position          Int             // Question order (1-100)
+
+  @@unique([examFormId, position])
+  @@index([examFormId])
+  @@map("form_items")
+}
+
+// ExamSitting = one student's attempt at an ExamForm
+model ExamSitting {
+  id                String          @id @default(cuid())
+
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  examFormId        String
+  examForm          ExamForm        @relation(fields: [examFormId], references: [id])
+
+  // Sitting state
+  status            SittingStatus   @default(NOT_STARTED)
+  startedAt         DateTime?
+  submittedAt       DateTime?
+  timeLimitMinutes  Int             // Copied from RuleSet at start
+
+  // Results
+  score             Float?          // Percent correct (0-100)
+  passed            Boolean?
+
+  // Responses
+  responses         Response[]
+
+  // Telemetry
+  codePanel         CodePanelLog[]  // Track code book usage
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("exam_sittings")
+}
+
+enum SittingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED        // Time ran out
+}
+
+model Response {
+  id                String          @id @default(cuid())
+
+  sittingId         String
+  sitting           ExamSitting     @relation(fields: [sittingId], references: [id], onDelete: Cascade)
+
+  itemId            String
+  item              Item            @relation(fields: [itemId], references: [id])
+
+  selectedAnswer    String?         // "A" | "B" | "C" | "D" | null (unanswered)
+  isCorrect         Boolean?
+
+  timeSpentSeconds  Int?            // Time on this question
+  flaggedForReview  Boolean         @default(false)
+
+  // Telemetry
+  revisionCount     Int             @default(0) // How many times answer changed
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([sittingId, itemId])
+  @@index([sittingId])
+  @@map("responses")
+}
+
+// Tracks when/how student opened code panel during exam
+model CodePanelLog {
+  id                String          @id @default(cuid())
+
+  sittingId         String
+  sitting           ExamSitting     @relation(fields: [sittingId], references: [id], onDelete: Cascade)
+
+  itemId            String?         // Which question was active
+  action            String          // "open", "search", "navigate"
+  targetArticle     String?         // e.g., "310.16"
+  searchQuery       String?
+
+  timestamp         DateTime        @default(now())
+
+  @@index([sittingId])
+  @@map("code_panel_logs")
+}
+
+// ============================================================================
+// NEC NAVIGATOR TRAINER (Lookup Drills)
+// ============================================================================
+
+model Drill {
+  id                String          @id @default(cuid())
+
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  drillType         DrillType       @default(ARTICLE_LOOKUP)
+
+  // Drill content
+  prompt            String          // "Find the minimum size THHN copper conductor for 60A at 75°C"
+  targetArticle     String          // "310.16"
+  targetTable       String?         // "Table 310.16"
+  targetSection     String?         // Specific subsection
+
+  // Student response
+  status            DrillStatus     @default(IN_PROGRESS)
+
+  // Path tracking
+  navigationPath    Json?           // ["Index", "Conductors", "310", "310.16", "Table 310.16"]
+
+  // Timing
+  startedAt         DateTime        @default(now())
+  completedAt       DateTime?
+  timeSpentSeconds  Int?
+
+  // Grading
+  isCorrect         Boolean?
+  articleMissBy     Int?            // If wrong, how many articles off?
+  efficiency        Float?          // Path efficiency score (0-1)
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("drills")
+}
+
+enum DrillType {
+  ARTICLE_LOOKUP
+  TABLE_LOOKUP
+  INDEX_NAVIGATION
+}
+
+enum DrillStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+// ============================================================================
+// ANALYTICS & ABILITY ESTIMATION
+// ============================================================================
+
+// IRT-lite ability estimation (simplified Item Response Theory)
+model AbilitySnapshot {
+  id                String          @id @default(cuid())
+
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Ability estimate (theta in IRT, typically -3 to +3)
+  theta             Float           // Current ability estimate
+  standardError     Float           // Uncertainty in estimate
+
+  // Sample size
+  itemsAnswered     Int
+
+  // Context
+  jurisdictionId    String?         // If jurisdiction-specific
+
+  createdAt         DateTime        @default(now())
+
+  @@index([userId, createdAt])
+  @@map("ability_snapshots")
+}
+
+// Topic-level mastery tracking
+model TopicMastery {
+  id                String          @id @default(cuid())
+
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  topic             String          // "conductor_sizing", "grounding_bonding", etc.
+
+  // Performance metrics
+  totalAttempts     Int             @default(0)
+  correctCount      Int             @default(0)
+  avgTimeSeconds    Float?
+
+  // Derived metrics
+  masteryPercent    Float           @default(0) // 0-100
+
+  // For lookup topics
+  avgLookupTime     Float?
+  lookupAccuracy    Float?
+
+  lastPracticed     DateTime        @default(now())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([userId, topic])
+  @@index([userId, masteryPercent])
+  @@map("topic_mastery")
+}

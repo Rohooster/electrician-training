@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* PSI-style exam interface styling */
+.exam-container {
+  @apply min-h-screen bg-gray-50;
+}
+
+.exam-header {
+  @apply bg-blue-600 text-white px-6 py-4 flex items-center justify-between;
+}
+
+.exam-timer {
+  @apply text-xl font-mono font-bold;
+}
+
+.exam-main {
+  @apply flex h-[calc(100vh-72px)];
+}
+
+.exam-sidebar {
+  @apply w-64 bg-white border-r border-gray-200 p-4 overflow-y-auto;
+}
+
+.exam-content {
+  @apply flex-1 p-8 overflow-y-auto;
+}
+
+.question-card {
+  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6;
+}
+
+.option-button {
+  @apply w-full text-left p-4 mb-2 rounded-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors;
+}
+
+.option-button.selected {
+  @apply border-blue-600 bg-blue-50;
+}
+
+.option-button.flagged {
+  @apply border-orange-500 bg-orange-50;
+}
+
+.nav-button {
+  @apply px-4 py-2 rounded-lg font-medium transition-colors;
+}
+
+.nav-button-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.nav-button-secondary {
+  @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
+}
+
+.question-nav-grid {
+  @apply grid grid-cols-5 gap-2;
+}
+
+.question-nav-item {
+  @apply w-10 h-10 rounded border-2 flex items-center justify-center text-sm font-medium cursor-pointer;
+}
+
+.question-nav-item.answered {
+  @apply bg-blue-100 border-blue-500 text-blue-700;
+}
+
+.question-nav-item.unanswered {
+  @apply bg-white border-gray-300 text-gray-600;
+}
+
+.question-nav-item.flagged {
+  @apply bg-orange-100 border-orange-500 text-orange-700;
+}
+
+.question-nav-item.current {
+  @apply ring-2 ring-offset-2 ring-blue-600;
+}
