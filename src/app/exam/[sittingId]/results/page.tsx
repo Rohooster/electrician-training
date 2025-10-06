@@ -13,9 +13,10 @@
 
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { trpc } from '@/lib/trpc-client';
 import Link from 'next/link';
+import { AnswerReview } from '@/components/exam/AnswerReview';
 
 interface PageProps {
   params: Promise<{
@@ -25,6 +26,9 @@ interface PageProps {
 
 export default function ResultsPage(props: PageProps) {
   const params = use(props.params);
+  const [bookmarkedQuestions, setBookmarkedQuestions] = useState<Set<number>>(
+    new Set()
+  );
 
   console.log('[Results] Loading results for sitting:', params.sittingId);
 
@@ -32,6 +36,21 @@ export default function ResultsPage(props: PageProps) {
   const { data: sitting, isLoading } = trpc.exam.getSitting.useQuery({
     sittingId: params.sittingId,
   });
+
+  // Handle bookmarking questions
+  const handleBookmark = (questionNumber: number) => {
+    setBookmarkedQuestions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(questionNumber)) {
+        newSet.delete(questionNumber);
+        console.log('[Results] Unbookmarked question:', questionNumber);
+      } else {
+        newSet.add(questionNumber);
+        console.log('[Results] Bookmarked question:', questionNumber);
+      }
+      return newSet;
+    });
+  };
 
   if (isLoading || !sitting) {
     return (
@@ -224,6 +243,40 @@ export default function ResultsPage(props: PageProps) {
             </ul>
           </div>
         )}
+
+        {/* Answer Review Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            Answer Review
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Review each question to understand what you got right and where you can improve.
+            Bookmark questions to study later.
+          </p>
+          <AnswerReview
+            items={sitting.examForm.formItems.map((formItem, idx) => {
+              const response = sitting.responses.find(
+                (r) => r.itemId === formItem.item.id
+              );
+              return {
+                questionNumber: idx + 1,
+                stem: formItem.item.stem,
+                optionA: formItem.item.optionA,
+                optionB: formItem.item.optionB,
+                optionC: formItem.item.optionC,
+                optionD: formItem.item.optionD,
+                correctAnswer: formItem.item.correctAnswer,
+                userAnswer: response?.selectedAnswer || null,
+                isCorrect: response?.isCorrect || false,
+                explanation: formItem.item.explanation || undefined,
+                necRefs: (formItem.item.necArticleRefs as string[]) || [],
+                topic: formItem.item.topic,
+              };
+            })}
+            onBookmark={handleBookmark}
+            bookmarkedQuestions={bookmarkedQuestions}
+          />
+        </div>
 
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4">

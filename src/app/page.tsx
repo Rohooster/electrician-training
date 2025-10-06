@@ -79,6 +79,25 @@ export default function HomePage() {
             <div className="text-purple-600 font-medium">Practice Calculations →</div>
           </Link>
 
+          {/* Exam History */}
+          <Link
+            href="/exam/history"
+            className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-t-4 border-indigo-600"
+          >
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="ml-4 text-xl font-bold text-gray-900">Exam History</h2>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Review all your past exam attempts, track improvement, and see your progress over time.
+            </p>
+            <div className="text-indigo-600 font-medium">View History →</div>
+          </Link>
+
           {/* Analytics Dashboard */}
           <Link
             href="/analytics"
