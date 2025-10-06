@@ -10,13 +10,18 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc-client';
 import { CognitiveType, DifficultyLevel } from '@prisma/client';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger({ component: 'AdminItems' });
 
 export default function ItemsPage() {
-  console.log('[Admin] Items page loaded');
+  useEffect(() => {
+    logger.info('Items page mounted');
+  }, []);
 
   // Filter states
   const [search, setSearch] = useState('');
@@ -27,29 +32,60 @@ export default function ItemsPage() {
   const pageSize = 20;
 
   // Fetch items with filters
-  const { data, isLoading, error } = trpc.admin.listItems.useQuery({
-    search: search || undefined,
-    topic: topic || undefined,
-    cognitive: cognitive || undefined,
-    difficulty: difficulty || undefined,
-    limit: pageSize,
-    offset: page * pageSize,
-  });
+  const { data, isLoading, error } = trpc.admin.listItems.useQuery(
+    {
+      search: search || undefined,
+      topic: topic || undefined,
+      cognitive: cognitive || undefined,
+      difficulty: difficulty || undefined,
+      limit: pageSize,
+      offset: page * pageSize,
+    },
+    {
+      onSuccess: (data) => {
+        logger.debug('Items fetched successfully', {
+          itemCount: data.items.length,
+          total: data.total,
+          page: page + 1,
+          filters: { search, topic, cognitive, difficulty },
+        });
+      },
+      onError: (error) => {
+        logger.error('Failed to fetch items', error, {
+          filters: { search, topic, cognitive, difficulty },
+          page,
+        });
+      },
+    }
+  );
 
   // Fetch available topics for filter dropdown
-  const { data: topics } = trpc.admin.getTopics.useQuery({});
-
-  // Delete mutation
-  const deleteMutation = trpc.admin.deleteItem.useMutation({
-    onSuccess: () => {
-      // Refetch items after deletion
-      window.location.reload();
+  const { data: topics } = trpc.admin.getTopics.useQuery({}, {
+    onSuccess: (topics) => {
+      logger.debug('Topics fetched', { topicCount: topics.length });
     },
   });
 
-  const handleDelete = async (id: string) => {
+  // Delete mutation
+  const deleteMutation = trpc.admin.deleteItem.useMutation({
+    onSuccess: (_, variables) => {
+      logger.info('Item deleted successfully', { itemId: variables.id });
+      // Refetch items after deletion
+      window.location.reload();
+    },
+    onError: (error, variables) => {
+      logger.error('Failed to delete item', error, { itemId: variables.id });
+    },
+  });
+
+  const handleDelete = async (id: string, itemPreview: string) => {
+    logger.info('Delete confirmation requested', { itemId: id, preview: itemPreview.substring(0, 50) });
+
     if (confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+      logger.warn('User confirmed deletion', { itemId: id });
       deleteMutation.mutate({ id });
+    } else {
+      logger.debug('User cancelled deletion', { itemId: id });
     }
   };
 
@@ -236,7 +272,7 @@ export default function ItemsPage() {
                           Edit
                         </Link>
                         <button
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDelete(item.id, item.stem)}
                           className="text-red-600 hover:text-red-900"
                           disabled={deleteMutation.isLoading}
                         >

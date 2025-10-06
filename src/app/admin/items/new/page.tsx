@@ -10,16 +10,23 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc-client';
 import { CognitiveType, DifficultyLevel } from '@prisma/client';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger({ component: 'AdminItemCreate' });
 
 export default function NewItemPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    logger.info('Create item page mounted');
+  }, []);
 
   // Fetch jurisdictions for dropdown
   const { data: jurisdictions } = trpc.trainer.getJurisdictions.useQuery();
@@ -44,10 +51,12 @@ export default function NewItemPage() {
 
   // Create mutation
   const createMutation = trpc.admin.createItem.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      logger.info('Item created successfully', { itemId: data.id, topic: data.topic });
       router.push('/admin/items');
     },
     onError: (err) => {
+      logger.error('Failed to create item', err, { formData });
       setError(err.message);
       setIsSubmitting(false);
     },
@@ -58,13 +67,21 @@ export default function NewItemPage() {
     setError(null);
     setIsSubmitting(true);
 
+    logger.info('Form submission started', {
+      topic: formData.topic,
+      cognitive: formData.cognitive,
+      difficulty: formData.difficulty,
+    });
+
     // Validation
     if (!formData.jurisdictionId) {
+      logger.warn('Validation failed: No jurisdiction selected');
       setError('Please select a jurisdiction');
       setIsSubmitting(false);
       return;
     }
     if (!formData.stem || !formData.optionA || !formData.optionB || !formData.optionC || !formData.optionD) {
+      logger.warn('Validation failed: Missing required fields');
       setError('Please fill in all required fields');
       setIsSubmitting(false);
       return;
@@ -73,6 +90,7 @@ export default function NewItemPage() {
     // Get code edition from selected jurisdiction
     const selectedJurisdiction = jurisdictions?.find((j) => j.id === formData.jurisdictionId);
     if (!selectedJurisdiction) {
+      logger.error('Invalid jurisdiction selected', undefined, { jurisdictionId: formData.jurisdictionId });
       setError('Invalid jurisdiction selected');
       setIsSubmitting(false);
       return;
@@ -88,6 +106,13 @@ export default function NewItemPage() {
       .split(',')
       .map((ref) => ref.trim())
       .filter((ref) => ref.length > 0);
+
+    logger.debug('Submitting item creation', {
+      topic: formData.topic,
+      necRefs: necArticleRefs.length,
+      cecRefs: cecAmendmentRefs.length,
+      hasExplanation: !!formData.explanation,
+    });
 
     createMutation.mutate({
       jurisdictionId: formData.jurisdictionId,

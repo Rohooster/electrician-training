@@ -9,6 +9,10 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { createTRPCRouter, adminProcedure, protectedProcedure } from '../trpc';
 import { CognitiveType, DifficultyLevel } from '@prisma/client';
+import { createLogger } from '@/lib/logger';
+import { withLogging } from '../utils/trpc-logger';
+
+const logger = createLogger({ component: 'AdminRouter' });
 
 export const adminRouter = createTRPCRouter({
   /**
@@ -44,21 +48,48 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { jurisdictionId, codeEditionId, items } = input;
 
-      // Bulk create items
-      const created = await ctx.prisma.item.createMany({
-        data: items.map((item) => ({
-          ...item,
-          jurisdictionId,
-          codeEditionId,
-          necArticleRefs: item.necArticleRefs,
-          cecAmendmentRefs: item.cecAmendmentRefs || [],
-        })),
+      logger.info('Starting bulk item import', {
+        userId: ctx.session.user.id,
+        jurisdictionId,
+        codeEditionId,
+        itemCount: items.length,
       });
 
-      return {
-        count: created.count,
-        message: `Successfully imported ${created.count} items`,
-      };
+      try {
+        // Bulk create items
+        const created = await logger.time(
+          'Bulk create items',
+          () =>
+            ctx.prisma.item.createMany({
+              data: items.map((item) => ({
+                ...item,
+                jurisdictionId,
+                codeEditionId,
+                necArticleRefs: item.necArticleRefs,
+                cecAmendmentRefs: item.cecAmendmentRefs || [],
+              })),
+            }),
+          { action: 'importItems' }
+        );
+
+        logger.info('Successfully imported items', {
+          userId: ctx.session.user.id,
+          count: created.count,
+          jurisdictionId,
+        });
+
+        return {
+          count: created.count,
+          message: `Successfully imported ${created.count} items`,
+        };
+      } catch (error) {
+        logger.error('Failed to import items', error as Error, {
+          userId: ctx.session.user.id,
+          jurisdictionId,
+          itemCount: items.length,
+        });
+        throw error;
+      }
     }),
 
   /**
@@ -173,52 +204,66 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const { jurisdictionId, topic, cognitive, difficulty, isActive, search, limit, offset } = input;
+      return withLogging(
+        'listItems',
+        ctx.session.user.id,
+        async () => {
+          const { jurisdictionId, topic, cognitive, difficulty, isActive, search, limit, offset } = input;
 
-      // Build search condition
-      const searchCondition = search
-        ? {
-            OR: [
-              { stem: { contains: search, mode: 'insensitive' as const } },
-              { optionA: { contains: search, mode: 'insensitive' as const } },
-              { optionB: { contains: search, mode: 'insensitive' as const } },
-              { optionC: { contains: search, mode: 'insensitive' as const } },
-              { optionD: { contains: search, mode: 'insensitive' as const } },
-              { explanation: { contains: search, mode: 'insensitive' as const } },
-            ],
-          }
-        : {};
+          logger.debug('Building search query', {
+            filters: { jurisdictionId, topic, cognitive, difficulty, isActive, search },
+            pagination: { limit, offset },
+          });
 
-      const items = await ctx.prisma.item.findMany({
-        where: {
-          ...(jurisdictionId && { jurisdictionId }),
-          ...(topic && { topic }),
-          ...(cognitive && { cognitive }),
-          ...(difficulty && { difficulty }),
-          ...(isActive !== undefined && { isActive }),
-          ...searchCondition,
+          // Build search condition
+          const searchCondition = search
+            ? {
+                OR: [
+                  { stem: { contains: search, mode: 'insensitive' as const } },
+                  { optionA: { contains: search, mode: 'insensitive' as const } },
+                  { optionB: { contains: search, mode: 'insensitive' as const } },
+                  { optionC: { contains: search, mode: 'insensitive' as const } },
+                  { optionD: { contains: search, mode: 'insensitive' as const } },
+                  { explanation: { contains: search, mode: 'insensitive' as const } },
+                ],
+              }
+            : {};
+
+          const items = await ctx.prisma.item.findMany({
+            where: {
+              ...(jurisdictionId && { jurisdictionId }),
+              ...(topic && { topic }),
+              ...(cognitive && { cognitive }),
+              ...(difficulty && { difficulty }),
+              ...(isActive !== undefined && { isActive }),
+              ...searchCondition,
+            },
+            include: {
+              jurisdiction: true,
+              codeEdition: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            skip: offset,
+          });
+
+          const total = await ctx.prisma.item.count({
+            where: {
+              ...(jurisdictionId && { jurisdictionId }),
+              ...(topic && { topic }),
+              ...(cognitive && { cognitive }),
+              ...(difficulty && { difficulty }),
+              ...(isActive !== undefined && { isActive }),
+              ...searchCondition,
+            },
+          });
+
+          logger.debug('Query results', { itemsFound: items.length, total, page: Math.floor(offset / limit) + 1 });
+
+          return { items, total };
         },
-        include: {
-          jurisdiction: true,
-          codeEdition: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        skip: offset,
-      });
-
-      const total = await ctx.prisma.item.count({
-        where: {
-          ...(jurisdictionId && { jurisdictionId }),
-          ...(topic && { topic }),
-          ...(cognitive && { cognitive }),
-          ...(difficulty && { difficulty }),
-          ...(isActive !== undefined && { isActive }),
-          ...searchCondition,
-        },
-      });
-
-      return { items, total };
+        input
+      );
     }),
 
   /**
@@ -278,15 +323,34 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const item = await ctx.prisma.item.create({
-        data: {
-          ...input,
-          necArticleRefs: input.necArticleRefs,
-          cecAmendmentRefs: input.cecAmendmentRefs || [],
-        },
-      });
+      return withLogging(
+        'createItem',
+        ctx.session.user.id,
+        async () => {
+          logger.info('Creating new item', {
+            topic: input.topic,
+            cognitive: input.cognitive,
+            difficulty: input.difficulty,
+            jurisdictionId: input.jurisdictionId,
+          });
 
-      return item;
+          const item = await ctx.prisma.item.create({
+            data: {
+              ...input,
+              necArticleRefs: input.necArticleRefs,
+              cecAmendmentRefs: input.cecAmendmentRefs || [],
+            },
+          });
+
+          logger.info('Item created successfully', {
+            itemId: item.id,
+            topic: item.topic,
+          });
+
+          return item;
+        },
+        input
+      );
     }),
 
   /**
@@ -295,11 +359,40 @@ export const adminRouter = createTRPCRouter({
   deleteItem: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.prisma.item.delete({
-        where: { id: input.id },
-      });
+      return withLogging(
+        'deleteItem',
+        ctx.session.user.id,
+        async () => {
+          logger.warn('Deleting item', { itemId: input.id });
 
-      return { success: true };
+          // Get item details before deletion for logging
+          const item = await ctx.prisma.item.findUnique({
+            where: { id: input.id },
+            select: { id: true, topic: true, cognitive: true, stem: true },
+          });
+
+          if (!item) {
+            logger.error('Item not found for deletion', undefined, { itemId: input.id });
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'Item not found',
+            });
+          }
+
+          await ctx.prisma.item.delete({
+            where: { id: input.id },
+          });
+
+          logger.warn('Item deleted successfully', {
+            itemId: input.id,
+            topic: item.topic,
+            stemPreview: item.stem.substring(0, 50),
+          });
+
+          return { success: true };
+        },
+        input
+      );
     }),
 
   /**
@@ -379,53 +472,89 @@ export const adminRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Get items without embeddings
-      const items = await ctx.prisma.item.findMany({
-        where: {
-          isActive: true,
-          embedding: null,
-          ...(input.itemIds && { id: { in: input.itemIds } }),
+      return withLogging(
+        'generateEmbeddings',
+        ctx.session.user.id,
+        async () => {
+          logger.info('Starting embedding generation', {
+            batchSize: input.batchSize,
+            specificItems: input.itemIds?.length || 'all',
+          });
+
+          // Get items without embeddings
+          const items = await ctx.prisma.item.findMany({
+            where: {
+              isActive: true,
+              embedding: null,
+              ...(input.itemIds && { id: { in: input.itemIds } }),
+            },
+            take: input.batchSize,
+            select: {
+              id: true,
+              stem: true,
+              explanation: true,
+              topic: true,
+            },
+          });
+
+          if (items.length === 0) {
+            logger.info('No items need embeddings');
+            return { count: 0, message: 'No items need embeddings' };
+          }
+
+          logger.info(`Found ${items.length} items needing embeddings`, {
+            topics: [...new Set(items.map((i) => i.topic))],
+          });
+
+          // TODO: Call OpenAI API to generate embeddings
+          // For now, we'll create placeholder embeddings
+          // In production, you would:
+          // 1. const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+          // 2. const response = await openai.embeddings.create({
+          //      model: "text-embedding-ada-002",
+          //      input: items.map(item => `${item.stem}\n\n${item.explanation || ''}`),
+          //    });
+          // 3. Store response.data embeddings in database
+
+          // Placeholder: Create mock embeddings (1536-dimensional zero vectors)
+          const mockEmbedding = new Array(1536).fill(0);
+
+          let created = 0;
+          let errors = 0;
+
+          for (const item of items) {
+            try {
+              await ctx.prisma.itemEmbedding.create({
+                data: {
+                  itemId: item.id,
+                  embedding: mockEmbedding,
+                  embeddingModel: 'text-embedding-ada-002',
+                  embeddingSource: 'stem_explanation',
+                },
+              });
+              created++;
+              logger.debug(`Created embedding for item`, { itemId: item.id, topic: item.topic });
+            } catch (error) {
+              errors++;
+              logger.error(`Failed to create embedding for item`, error as Error, {
+                itemId: item.id,
+              });
+            }
+          }
+
+          logger.info('Embedding generation completed', {
+            created,
+            errors,
+            successRate: `${((created / items.length) * 100).toFixed(1)}%`,
+          });
+
+          return {
+            count: created,
+            message: `Generated ${created} embeddings${errors > 0 ? ` (${errors} errors)` : ''}`,
+          };
         },
-        take: input.batchSize,
-        select: {
-          id: true,
-          stem: true,
-          explanation: true,
-        },
-      });
-
-      if (items.length === 0) {
-        return { count: 0, message: 'No items need embeddings' };
-      }
-
-      // TODO: Call OpenAI API to generate embeddings
-      // For now, we'll create placeholder embeddings
-      // In production, you would:
-      // 1. const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      // 2. const response = await openai.embeddings.create({
-      //      model: "text-embedding-ada-002",
-      //      input: items.map(item => `${item.stem}\n\n${item.explanation || ''}`),
-      //    });
-      // 3. Store response.data embeddings in database
-
-      // Placeholder: Create mock embeddings (1536-dimensional zero vectors)
-      const mockEmbedding = new Array(1536).fill(0);
-
-      for (const item of items) {
-        await ctx.prisma.itemEmbedding.create({
-          data: {
-            itemId: item.id,
-            embedding: mockEmbedding,
-            embeddingModel: 'text-embedding-ada-002',
-            embeddingSource: 'stem_explanation',
-          },
-        });
-      }
-
-      return {
-        count: items.length,
-        message: `Generated ${items.length} embeddings`,
-      };
+        input
+      );
     }),
 
   /**
