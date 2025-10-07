@@ -1,12 +1,13 @@
 /**
  * Client-side Providers
  *
- * Wraps app with React Query and tRPC providers.
+ * Wraps app with React Query, tRPC, and auth providers.
  */
 
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SessionProvider } from 'next-auth/react';
 import { useState } from 'react';
 import { trpc, getTRPCClient } from '@/lib/trpc-client';
 
@@ -23,10 +24,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [trpcClient] = useState(() => getTRPCClient());
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+    <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          {children}
+        </trpc.Provider>
       </QueryClientProvider>
-    </trpc.Provider>
+    </SessionProvider>
   );
 }

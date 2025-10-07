@@ -9,14 +9,13 @@ import { type NextRequest } from 'next/server';
 import superjson from 'superjson';
 import { ZodError } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 /**
  * Create tRPC context from Next.js request
  */
 export async function createTRPCContext(opts: { req?: NextRequest }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   return {
     prisma,

@@ -13,6 +13,7 @@
 
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { type NextAuthOptions } from 'next-auth';
+import NextAuth from 'next-auth';
 import EmailProvider from 'next-auth/providers/email';
 import GoogleProvider from 'next-auth/providers/google';
 import { prisma } from '@/lib/prisma';
@@ -153,3 +154,14 @@ export const authOptions: NextAuthOptions = {
   // Security: Set base path for auth routes
   basePath: '/api/auth',
 };
+
+/**
+ * NextAuth v5 compatible auth() function
+ * Creates an auth instance using the authOptions
+ */
+const nextAuthInstance = NextAuth(authOptions);
+
+export const auth = nextAuthInstance.auth;
+export const handlers = nextAuthInstance.handlers;
+export const signIn = nextAuthInstance.signIn;
+export const signOut = nextAuthInstance.signOut;

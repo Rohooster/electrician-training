@@ -10,14 +10,14 @@
  */
 
 import { z } from 'zod';
-import { router, protectedProcedure } from '../trpc';
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
 import { generateLearningPath, type StudentProfile, type DiagnosticReport } from '@/lib/learning-path/path-generator';
 import { calculatePathProgress, canAdvanceToNextStep, updateStudentStreak } from '@/lib/learning-path/progress-tracker';
 import { calculateConceptMastery } from '@/lib/learning-path/mastery-calculator';
 import { checkAndUnlockMilestones, awardStepCompletion, getStudentProgress } from '@/lib/learning-path/milestone-engine';
 
-export const learningPathRouter = router({
+export const learningPathRouter = createTRPCRouter({
   /**
    * Generate personalized learning path from assessment results
    */
@@ -370,8 +370,28 @@ export const learningPathRouter = router({
 
   /**
    * Get student statistics and achievements
+   * Returns mock data for demo when not authenticated
    */
-  getStudentStats: protectedProcedure.query(async ({ ctx }) => {
+  getStudentStats: publicProcedure.query(async ({ ctx }) => {
+    // Return mock data for demo if not authenticated
+    if (!ctx.user) {
+      return {
+        level: 5,
+        xp: 3500,
+        xpToNextLevel: 500,
+        currentStreak: 7,
+        longestStreak: 14,
+        totalStudyMinutes: 420,
+        overallAccuracy: 78,
+        estimatedExamScore: 82,
+        readinessLevel: 'READY' as const,
+        badges: [
+          { id: '1', name: 'Quick Starter', earnedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          { id: '2', name: 'Week Warrior', earnedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+        ],
+      };
+    }
+
     const stats = await getStudentProgress(ctx.prisma, ctx.user.id);
 
     const profile = await ctx.prisma.studentProfile.findUnique({
@@ -391,8 +411,35 @@ export const learningPathRouter = router({
 
   /**
    * Get all active learning paths for user
+   * Returns mock data for demo when not authenticated
    */
-  getUserPaths: protectedProcedure.query(async ({ ctx }) => {
+  getUserPaths: publicProcedure.query(async ({ ctx }) => {
+    // Return mock data for demo if not authenticated
+    if (!ctx.user) {
+      return [
+        {
+          id: 'demo-path-1',
+          name: 'NEC Code Fundamentals',
+          description: 'Master the National Electrical Code basics including wiring methods, overcurrent protection, and grounding',
+          status: 'ACTIVE' as const,
+          estimatedDays: 14,
+          completedSteps: 8,
+          totalSteps: 20,
+          progress: 40,
+        },
+        {
+          id: 'demo-path-2',
+          name: 'Commercial Wiring',
+          description: 'Learn commercial electrical installations, load calculations, and three-phase systems',
+          status: 'ACTIVE' as const,
+          estimatedDays: 10,
+          completedSteps: 3,
+          totalSteps: 15,
+          progress: 20,
+        },
+      ];
+    }
+
     const paths = await ctx.prisma.learningPath.findMany({
       where: {
         userId: ctx.user.id,

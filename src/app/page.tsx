@@ -251,6 +251,12 @@ function MarketingPage() {
               Get Started Free
             </Link>
             <Link
+              href="/student/dashboard"
+              className="px-8 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg text-lg"
+            >
+              View Student Dashboard (Demo)
+            </Link>
+            <Link
               href="/exam"
               className="px-8 py-4 bg-white text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-md text-lg border border-gray-300"
             >
