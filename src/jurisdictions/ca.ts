@@ -90,7 +90,7 @@ export const CA_GENERAL_ELECTRICIAN = {
     special_occupancies: 0.05,
 
     // Calculation problems: Dwelling loads (Art. 220), service sizing
-    calculations: 0.12,
+    calculations: 0.02,
   },
 
   /**

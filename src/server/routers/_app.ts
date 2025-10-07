@@ -12,6 +12,7 @@ import { adminRouter } from './admin';
 import { conceptRouter } from './concept';
 import { embeddingRouter } from './embedding';
 import { learningPathRouter } from './learning-path';
+import { assessmentRouter } from './assessment';
 
 export const appRouter = createTRPCRouter({
   exam: examRouter,
@@ -21,6 +22,7 @@ export const appRouter = createTRPCRouter({
   concept: conceptRouter,
   embedding: embeddingRouter,
   learningPath: learningPathRouter,
+  assessment: assessmentRouter,
 });
 
 export type AppRouter = typeof appRouter;

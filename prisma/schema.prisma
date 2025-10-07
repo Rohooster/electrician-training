@@ -796,8 +796,8 @@ model ConceptMastery {
 model AdaptiveAssessment {
   id String @id @default(cuid())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   jurisdictionId String
   jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])

@@ -69,16 +69,36 @@ async function main() {
   });
   console.log(`✅ Jurisdiction: ${jurisdiction.name}\n`);
 
-  // 4. Seed Sample Items (150+ items across all topics)
-  console.log('📝 Seeding exam items...');
+  // 4. Seed Concepts with Prerequisites (CRITICAL for adaptive learning)
+  console.log('🧠 Creating concept graph with prerequisites...');
+  const concepts = await seedConcepts(prisma, jurisdiction.id);
+  console.log(`✅ Created ${concepts.size} concepts with prerequisite relationships\n`);
+
+  // 5. Seed Sample Items (150+ items across all topics)
+  console.log('📝 Seeding exam items and linking to concepts...');
 
   const items = generateSampleItems(jurisdiction.id, codeEdition.id);
 
-  for (const item of items) {
-    await prisma.item.create({ data: item });
+  let conceptItemLinks = 0;
+  for (const itemData of items) {
+    const createdItem = await prisma.item.create({ data: itemData });
+
+    // Link item to relevant concepts based on topic
+    const relatedConcepts = getConceptsForTopic(itemData.topic, concepts);
+    for (const concept of relatedConcepts) {
+      await prisma.conceptItem.create({
+        data: {
+          conceptId: concept.id,
+          itemId: createdItem.id,
+          relevanceScore: 0.8, // Default relevance weight
+        },
+      });
+      conceptItemLinks++;
+    }
   }
 
-  console.log(`✅ Created ${items.length} exam items\n`);
+  console.log(`✅ Created ${items.length} exam items`);
+  console.log(`✅ Created ${conceptItemLinks} concept-item links\n`);
 
   // 5. Seed Calculation Templates
   console.log('🧮 Creating calculation templates...');
@@ -138,6 +158,147 @@ async function main() {
   console.log(`   - Questions per exam: ${ruleSet.questionCount}`);
   console.log(`   - Time limit: ${ruleSet.timeLimitMinutes} minutes`);
   console.log(`   - Pass threshold: ${ruleSet.passThresholdPercent}%\n`);
+}
+
+/**
+ * Seed Concepts with Prerequisite Graph
+ * Creates foundational knowledge graph for adaptive learning paths
+ */
+async function seedConcepts(prisma: PrismaClient, jurisdictionId: string) {
+  const conceptMap = new Map<string, any>();
+
+  // Define concepts with their properties
+  const conceptDefs = [
+    // FOUNDATIONAL (Level 1 - No prerequisites)
+    { slug: 'electrical-safety', name: 'Electrical Safety Fundamentals', description: 'Understand electrical safety practices, hazard identification, and protective equipment requirements per NEC and NFPA 70E', category: 'definitions_general', difficultyLevel: 'EASY', necRefs: ['110.16', 'NFPA 70E'] },
+    { slug: 'basic-definitions', name: 'NEC Basic Definitions', description: 'Master fundamental electrical terminology defined in NEC Article 100', category: 'definitions_general', difficultyLevel: 'EASY', necRefs: ['100'] },
+    { slug: 'voltage-current-resistance', name: 'Voltage, Current, and Resistance Basics', description: 'Understand the fundamental relationship between voltage, current, and resistance in electrical circuits', category: 'definitions_general', difficultyLevel: 'EASY', necRefs: [] },
+
+    // FOUNDATIONAL CALCULATIONS (Level 2)
+    { slug: 'ohms-law', name: "Ohm's Law (V=IR)", description: "Apply Ohm's Law to calculate voltage, current, or resistance in electrical circuits", category: 'calculations', difficultyLevel: 'MEDIUM', necRefs: [], prereqs: ['voltage-current-resistance'] },
+    { slug: 'power-calculations', name: 'Power Calculations (P=VI, P=I²R)', description: 'Calculate electrical power using voltage, current, and resistance relationships', category: 'calculations', difficultyLevel: 'MEDIUM', necRefs: [], prereqs: ['ohms-law'] },
+    { slug: 'series-parallel-circuits', name: 'Series and Parallel Circuits', description: 'Analyze and calculate total resistance, voltage, and current in series and parallel circuits', category: 'calculations', difficultyLevel: 'MEDIUM', necRefs: [], prereqs: ['ohms-law'] },
+
+    // CONDUCTORS & AMPACITY (Level 2-3)
+    { slug: 'conductor-types', name: 'Conductor Types and Insulation', description: 'Identify conductor materials, insulation types, and their applications per NEC 310', category: 'conductor_sizing', difficultyLevel: 'MEDIUM', necRefs: ['310.104'], prereqs: ['basic-definitions'] },
+    { slug: 'ampacity-basics', name: 'Ampacity and Temperature Ratings', description: 'Understand ampacity, temperature ratings, and derating factors for conductors', category: 'conductor_sizing', difficultyLevel: 'MEDIUM', necRefs: ['310.14', '310.15'], prereqs: ['conductor-types'] },
+    { slug: 'conductor-sizing', name: 'Conductor Sizing (Table 310.16)', description: 'Size conductors using NEC Table 310.16 based on load and conditions', category: 'conductor_sizing', difficultyLevel: 'HARD', necRefs: ['310.16', '240.4'], prereqs: ['ampacity-basics', 'power-calculations'] },
+    { slug: 'voltage-drop', name: 'Voltage Drop Calculations', description: 'Calculate voltage drop and select conductors to meet NEC voltage drop recommendations', category: 'conductor_sizing', difficultyLevel: 'HARD', necRefs: ['210.19', '215.2'], prereqs: ['conductor-sizing', 'series-parallel-circuits'] },
+
+    // OVERCURRENT PROTECTION (Level 2-3)
+    { slug: 'ocpd-types', name: 'OCPD Types (Breakers, Fuses)', description: 'Identify and compare overcurrent protection device types and applications', category: 'ocpd', difficultyLevel: 'EASY', necRefs: ['240.6'], prereqs: ['basic-definitions'] },
+    { slug: 'ocpd-sizing', name: 'OCPD Sizing and Selection', description: 'Size and select overcurrent protection devices per NEC requirements', category: 'ocpd', difficultyLevel: 'MEDIUM', necRefs: ['240.4', '240.6'], prereqs: ['ocpd-types', 'ampacity-basics'] },
+    { slug: 'ocpd-protection-rules', name: 'Conductor Protection Rules', description: 'Apply NEC rules for conductor overcurrent protection, including tap rules', category: 'ocpd', difficultyLevel: 'HARD', necRefs: ['240.4', '240.21'], prereqs: ['ocpd-sizing', 'conductor-sizing'] },
+
+    // GROUNDING & BONDING (Level 2-3)
+    { slug: 'grounding-concepts', name: 'Grounding vs Bonding Concepts', description: 'Understand the difference between grounding and bonding and their safety purposes', category: 'grounding_bonding', difficultyLevel: 'MEDIUM', necRefs: ['250.4'], prereqs: ['basic-definitions', 'electrical-safety'] },
+    { slug: 'grounding-electrode', name: 'Grounding Electrode System', description: 'Install and connect grounding electrode systems per NEC 250', category: 'grounding_bonding', difficultyLevel: 'MEDIUM', necRefs: ['250.50', '250.52'], prereqs: ['grounding-concepts'] },
+    { slug: 'grounding-conductor-sizing', name: 'Grounding Conductor Sizing', description: 'Size grounding and bonding conductors using NEC Tables 250.66 and 250.122', category: 'grounding_bonding', difficultyLevel: 'HARD', necRefs: ['250.66', '250.122'], prereqs: ['grounding-electrode', 'conductor-sizing'] },
+    { slug: 'equipment-bonding', name: 'Equipment Grounding and Bonding', description: 'Install equipment grounding conductors and bonding jumpers correctly', category: 'grounding_bonding', difficultyLevel: 'HARD', necRefs: ['250.119', '250.148'], prereqs: ['grounding-concepts'] },
+
+    // BRANCH CIRCUITS & FEEDERS (Level 3)
+    { slug: 'branch-circuit-basics', name: 'Branch Circuit Requirements', description: 'Understand branch circuit types, ratings, and installation requirements', category: 'branch_feeder_service', difficultyLevel: 'MEDIUM', necRefs: ['210.11', '210.12'], prereqs: ['basic-definitions'] },
+    { slug: 'receptacle-requirements', name: 'Receptacle Placement and GFCI/AFCI', description: 'Apply receptacle spacing rules and GFCI/AFCI protection requirements', category: 'branch_feeder_service', difficultyLevel: 'MEDIUM', necRefs: ['210.8', '210.52'], prereqs: ['branch-circuit-basics'] },
+    { slug: 'feeder-calculations', name: 'Feeder Load Calculations', description: 'Calculate feeder loads and size feeder conductors and OCPDs', category: 'branch_feeder_service', difficultyLevel: 'HARD', necRefs: ['215.2', '220.40'], prereqs: ['branch-circuit-basics', 'conductor-sizing'] },
+    { slug: 'service-requirements', name: 'Service Entrance Requirements', description: 'Install service entrance conductors and equipment per NEC 230', category: 'branch_feeder_service', difficultyLevel: 'HARD', necRefs: ['230.42', '230.79'], prereqs: ['feeder-calculations'] },
+
+    // LOAD CALCULATIONS (Level 3-4)
+    { slug: 'general-lighting-loads', name: 'General Lighting Load Calculations', description: 'Calculate general lighting loads using NEC 220.12 and apply demand factors', category: 'calculations', difficultyLevel: 'MEDIUM', necRefs: ['220.12'], prereqs: ['branch-circuit-basics'] },
+    { slug: 'appliance-loads', name: 'Appliance and Equipment Loads', description: 'Calculate appliance and equipment loads with appropriate demand factors', category: 'calculations', difficultyLevel: 'MEDIUM', necRefs: ['220.14', '220.53'], prereqs: ['general-lighting-loads'] },
+    { slug: 'dwelling-service-calc', name: 'Dwelling Service Load Calculation', description: 'Perform complete dwelling unit service load calculations using standard or optional methods', category: 'calculations', difficultyLevel: 'HARD', necRefs: ['220.82', '220.83'], prereqs: ['appliance-loads', 'feeder-calculations'] },
+    { slug: 'commercial-load-calc', name: 'Commercial Load Calculations', description: 'Calculate service and feeder loads for commercial occupancies', category: 'calculations', difficultyLevel: 'HARD', necRefs: ['220.40', '220.61'], prereqs: ['dwelling-service-calc'] },
+
+    // BOXES & ENCLOSURES (Level 2-3)
+    { slug: 'box-types', name: 'Outlet and Junction Box Types', description: 'Identify outlet box and junction box types and their proper applications', category: 'boxes_enclosures', difficultyLevel: 'EASY', necRefs: ['314.15'], prereqs: ['basic-definitions'] },
+    { slug: 'box-fill-calculations', name: 'Box Fill Calculations', description: 'Calculate box fill per NEC 314.16 to determine minimum box size', category: 'boxes_enclosures', difficultyLevel: 'HARD', necRefs: ['314.16'], prereqs: ['box-types', 'conductor-types'] },
+
+    // RACEWAYS (Level 2-3)
+    { slug: 'raceway-types', name: 'Raceway Types and Installation', description: 'Identify raceway types and apply installation requirements per NEC 300', category: 'raceway_fill', difficultyLevel: 'MEDIUM', necRefs: ['300.4', '300.5'], prereqs: ['basic-definitions'] },
+    { slug: 'raceway-fill', name: 'Conduit Fill Calculations', description: 'Calculate conduit fill using NEC Chapter 9 tables to size raceways', category: 'raceway_fill', difficultyLevel: 'HARD', necRefs: ['Chapter 9, Table 1'], prereqs: ['raceway-types', 'conductor-types'] },
+
+    // MOTORS (Level 3-4)
+    { slug: 'motor-fundamentals', name: 'Motor Types and Characteristics', description: 'Understand motor types, nameplates, and operating characteristics', category: 'motors_transformers', difficultyLevel: 'MEDIUM', necRefs: ['430.6'], prereqs: ['basic-definitions', 'power-calculations'] },
+    { slug: 'motor-branch-circuits', name: 'Motor Branch Circuit Sizing', description: 'Size motor branch circuit conductors and short-circuit protection per NEC 430', category: 'motors_transformers', difficultyLevel: 'HARD', necRefs: ['430.22', '430.52'], prereqs: ['motor-fundamentals', 'conductor-sizing', 'ocpd-sizing'] },
+    { slug: 'motor-overload-protection', name: 'Motor Overload Protection', description: 'Select and size motor overload protection devices correctly', category: 'motors_transformers', difficultyLevel: 'HARD', necRefs: ['430.32'], prereqs: ['motor-branch-circuits'] },
+
+    // TRANSFORMERS (Level 3-4)
+    { slug: 'transformer-basics', name: 'Transformer Principles', description: 'Understand transformer operation, types, and voltage/current relationships', category: 'motors_transformers', difficultyLevel: 'MEDIUM', necRefs: ['450.3'], prereqs: ['voltage-current-resistance', 'power-calculations'] },
+    { slug: 'transformer-protection', name: 'Transformer Overcurrent Protection', description: 'Size primary and secondary overcurrent protection for transformers per NEC 450', category: 'motors_transformers', difficultyLevel: 'HARD', necRefs: ['450.3'], prereqs: ['transformer-basics', 'ocpd-sizing'] },
+
+    // SPECIAL OCCUPANCIES (Level 4)
+    { slug: 'hazardous-locations', name: 'Hazardous Locations Classification', description: 'Classify hazardous locations and apply appropriate wiring methods per NEC 500', category: 'special_occupancies', difficultyLevel: 'HARD', necRefs: ['500.5', '500.6'], prereqs: ['basic-definitions'] },
+    { slug: 'healthcare-facilities', name: 'Healthcare Facility Requirements', description: 'Apply special requirements for healthcare facilities per NEC Article 517', category: 'special_occupancies', difficultyLevel: 'HARD', necRefs: ['517'], prereqs: ['grounding-concepts', 'branch-circuit-basics'] },
+  ];
+
+  // Create all concepts
+  for (const def of conceptDefs) {
+    const concept = await prisma.concept.create({
+      data: {
+        slug: def.slug,
+        name: def.name,
+        description: def.description,
+        category: def.category,
+        difficultyLevel: def.difficultyLevel,
+        bloomLevel: def.bloomLevel,
+        necArticleRefs: def.necRefs,
+        jurisdictionId,
+      },
+    });
+    conceptMap.set(def.slug, { ...concept, prereqSlugs: def.prereqs || [] });
+  }
+
+  // Create prerequisite relationships
+  let prereqCount = 0;
+  for (const [slug, concept] of conceptMap.entries()) {
+    if (concept.prereqSlugs && concept.prereqSlugs.length > 0) {
+      for (const prereqSlug of concept.prereqSlugs) {
+        const prereqConcept = conceptMap.get(prereqSlug);
+        if (prereqConcept) {
+          await prisma.conceptPrerequisite.create({
+            data: {
+              conceptId: concept.id,
+              prerequisiteId: prereqConcept.id,
+              strength: 1.0, // Required prerequisite
+            },
+          });
+          prereqCount++;
+        }
+      }
+    }
+  }
+
+  console.log(`   - Created ${prereqCount} prerequisite relationships`);
+  return conceptMap;
+}
+
+/**
+ * Map exam item topics to relevant concepts
+ */
+function getConceptsForTopic(topic: string, conceptMap: Map<string, any>): any[] {
+  const topicConceptMap: Record<string, string[]> = {
+    'definitions_general': ['basic-definitions', 'electrical-safety'],
+    'conductor_sizing': ['conductor-types', 'ampacity-basics', 'conductor-sizing', 'voltage-drop'],
+    'ocpd': ['ocpd-types', 'ocpd-sizing', 'ocpd-protection-rules'],
+    'grounding_bonding': ['grounding-concepts', 'grounding-electrode', 'grounding-conductor-sizing', 'equipment-bonding'],
+    'branch_feeder_service': ['branch-circuit-basics', 'receptacle-requirements', 'feeder-calculations', 'service-requirements'],
+    'calculations': ['ohms-law', 'power-calculations', 'general-lighting-loads', 'appliance-loads', 'dwelling-service-calc', 'commercial-load-calc'],
+    'boxes_enclosures': ['box-types', 'box-fill-calculations'],
+    'raceway_fill': ['raceway-types', 'raceway-fill'],
+    'motors_transformers': ['motor-fundamentals', 'motor-branch-circuits', 'motor-overload-protection', 'transformer-basics', 'transformer-protection'],
+    'special_occupancies': ['hazardous-locations', 'healthcare-facilities'],
+  };
+
+  const conceptSlugs = topicConceptMap[topic] || [];
+  const concepts: any[] = [];
+
+  for (const slug of conceptSlugs) {
+    const concept = conceptMap.get(slug);
+    if (concept) {
+      concepts.push(concept);
+    }
+  }
+
+  return concepts;
 }
 
 /**

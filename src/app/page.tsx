@@ -230,66 +230,66 @@ function Dashboard({ session }: { session: any }) {
  */
 function MarketingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-6 py-12 md:py-24">
         <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 mb-6 tracking-tight">
             California Electrician
             <br />
-            <span className="text-green-600">Exam Prep</span>
+            <span className="text-blue-600">Exam Preparation</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
             Master the California General Electrician certification exam with
             realistic practice tests, timed NEC drills, and detailed analytics
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/auth/signin"
-              className="px-8 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors shadow-lg text-lg"
+              className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-md text-lg"
             >
               Get Started Free
             </Link>
             <Link
               href="/student/dashboard"
-              className="px-8 py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg text-lg"
+              className="px-8 py-4 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-all shadow-md text-lg"
             >
-              View Student Dashboard (Demo)
+              View Dashboard Demo
             </Link>
             <Link
               href="/exam"
-              className="px-8 py-4 bg-white text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-md text-lg border border-gray-300"
+              className="px-8 py-4 bg-white text-gray-900 font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-md text-lg border-2 border-gray-900"
             >
-              Try Demo Exam
+              Try Practice Exam
             </Link>
           </div>
         </div>
 
         {/* Features */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 hover:border-blue-500 transition-all">
+            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
               <svg
-                className="w-8 h-8 text-blue-600"
+                className="w-6 h-6 text-white"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
                 <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
               PSI-Style Exams
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 leading-relaxed">
               100-question practice exams that replicate the real PSI testing
               experience with 4-hour time limits and open-book simulation
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 hover:border-blue-500 transition-all">
+            <div className="w-12 h-12 bg-gray-900 rounded-lg flex items-center justify-center mb-4">
               <svg
-                className="w-8 h-8 text-green-600"
+                className="w-6 h-6 text-white"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -300,29 +300,29 @@ function MarketingPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
               NEC Navigator Drills
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 leading-relaxed">
               Timed code lookup exercises to build muscle memory for finding
               articles, tables, and sections quickly in the NEC
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 hover:border-blue-500 transition-all">
+            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
               <svg
-                className="w-8 h-8 text-purple-600"
+                className="w-6 h-6 text-white"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
                 <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <h3 className="text-xl font-bold text-gray-900 mb-3">
               Detailed Analytics
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 leading-relaxed">
               Track your performance by topic, identify weak areas, and get
               personalized study recommendations to focus your prep
             </p>
@@ -330,22 +330,22 @@ function MarketingPage() {
         </div>
 
         {/* Social Proof */}
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          <p className="text-gray-600 mb-2">
+        <div className="bg-gray-900 rounded-xl p-10 text-center">
+          <p className="text-gray-300 mb-6 text-lg">
             Join electricians preparing for California certification
           </p>
-          <div className="flex items-center justify-center space-x-8">
+          <div className="grid grid-cols-3 gap-8">
             <div>
-              <div className="text-3xl font-bold text-gray-900">95%</div>
-              <div className="text-sm text-gray-600">Pass Rate</div>
+              <div className="text-4xl font-bold text-white mb-2">95%</div>
+              <div className="text-sm text-gray-400">Pass Rate</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-gray-900">10k+</div>
-              <div className="text-sm text-gray-600">Practice Questions</div>
+              <div className="text-4xl font-bold text-white mb-2">10k+</div>
+              <div className="text-sm text-gray-400">Practice Questions</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-gray-900">2024</div>
-              <div className="text-sm text-gray-600">NEC 2020 / CEC 2022</div>
+              <div className="text-4xl font-bold text-white mb-2">2024</div>
+              <div className="text-sm text-gray-400">NEC 2020 / CEC 2022</div>
             </div>
           </div>
         </div>
