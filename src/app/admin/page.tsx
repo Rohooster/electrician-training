@@ -106,16 +106,16 @@ export default function AdminDashboard() {
             href="/admin/concepts/new"
           />
           <ActionCard
-            title="Generate Embeddings"
-            description="Create vector embeddings"
+            title="Embedding Dashboard"
+            description="Monitor embedding quality"
             icon="vector"
-            href="/admin/embeddings/generate"
+            href="/admin/embeddings/dashboard"
           />
           <ActionCard
-            title="Import Content"
-            description="Bulk import from CSV/JSON"
-            icon="upload"
-            href="/admin/items/import"
+            title="Test Similarity"
+            description="Explore semantic search"
+            icon="search"
+            href="/admin/embeddings/test"
           />
         </div>
       </div>

@@ -225,6 +225,7 @@ model Item {
   embedding         ItemEmbedding?
   concepts          ConceptItem[]
   pathSteps         LearningPathStep[]
+  calcTemplates     CalcTemplate[]  @relation("CalcTemplateToItem")
 
   isActive          Boolean         @default(true)
   createdAt         DateTime        @default(now())
@@ -281,14 +282,8 @@ model CalcTemplate {
 }
 
 // Relation table for calc template to item (many-to-many)
-model _CalcTemplateToItem {
-  A String
-  B String
-
-  @@unique([A, B])
-  @@index([B])
-  @@map("_CalcTemplateToItem")
-}
+// This is managed by Prisma's implicit many-to-many relation
+// Removed explicit definition to let Prisma handle it automatically
 
 // ============================================================================
 // EXAM FORMS & SITTINGS

@@ -462,7 +462,8 @@ export const adminRouter = createTRPCRouter({
 
   /**
    * Generate embeddings for items without them
-   * NOTE: This is a placeholder - actual OpenAI integration would be added here
+   * @deprecated Use embedding.generateItemEmbeddings instead
+   * Kept for backwards compatibility with existing UI
    */
   generateEmbeddings: adminProcedure
     .input(
@@ -476,81 +477,15 @@ export const adminRouter = createTRPCRouter({
         'generateEmbeddings',
         ctx.session.user.id,
         async () => {
-          logger.info('Starting embedding generation', {
-            batchSize: input.batchSize,
-            specificItems: input.itemIds?.length || 'all',
+          logger.warn('Using deprecated generateEmbeddings procedure', {
+            hint: 'Use embedding.generateItemEmbeddings instead',
           });
 
-          // Get items without embeddings
-          const items = await ctx.prisma.item.findMany({
-            where: {
-              isActive: true,
-              embedding: null,
-              ...(input.itemIds && { id: { in: input.itemIds } }),
-            },
-            take: input.batchSize,
-            select: {
-              id: true,
-              stem: true,
-              explanation: true,
-              topic: true,
-            },
-          });
-
-          if (items.length === 0) {
-            logger.info('No items need embeddings');
-            return { count: 0, message: 'No items need embeddings' };
-          }
-
-          logger.info(`Found ${items.length} items needing embeddings`, {
-            topics: [...new Set(items.map((i) => i.topic))],
-          });
-
-          // TODO: Call OpenAI API to generate embeddings
-          // For now, we'll create placeholder embeddings
-          // In production, you would:
-          // 1. const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-          // 2. const response = await openai.embeddings.create({
-          //      model: "text-embedding-ada-002",
-          //      input: items.map(item => `${item.stem}\n\n${item.explanation || ''}`),
-          //    });
-          // 3. Store response.data embeddings in database
-
-          // Placeholder: Create mock embeddings (1536-dimensional zero vectors)
-          const mockEmbedding = new Array(1536).fill(0);
-
-          let created = 0;
-          let errors = 0;
-
-          for (const item of items) {
-            try {
-              await ctx.prisma.itemEmbedding.create({
-                data: {
-                  itemId: item.id,
-                  embedding: mockEmbedding,
-                  embeddingModel: 'text-embedding-ada-002',
-                  embeddingSource: 'stem_explanation',
-                },
-              });
-              created++;
-              logger.debug(`Created embedding for item`, { itemId: item.id, topic: item.topic });
-            } catch (error) {
-              errors++;
-              logger.error(`Failed to create embedding for item`, error as Error, {
-                itemId: item.id,
-              });
-            }
-          }
-
-          logger.info('Embedding generation completed', {
-            created,
-            errors,
-            successRate: `${((created / items.length) * 100).toFixed(1)}%`,
-          });
-
+          // Redirect to new embedding router functionality
+          // This is kept for backwards compatibility
           return {
-            count: created,
-            message: `Generated ${created} embeddings${errors > 0 ? ` (${errors} errors)` : ''}`,
+            count: 0,
+            message: 'Please use the new embedding router: embedding.generateItemEmbeddings',
           };
         },
         input
