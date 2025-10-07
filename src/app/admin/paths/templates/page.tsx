@@ -12,22 +12,6 @@
  */
 
 import { useState } from 'react';
-import { Card } from '~/components/ui/card';
-import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
-import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
-import {
-  BookOpen,
-  Plus,
-  Edit,
-  Copy,
-  Trash2,
-  Users,
-  Clock,
-  Target,
-  Settings,
-} from 'lucide-react';
 
 export default function PathTemplatesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,7 +78,7 @@ export default function PathTemplatesPage() {
   );
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="p-6 max-w-7xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -105,53 +89,60 @@ export default function PathTemplatesPage() {
             Manage reusable templates for personalized learning paths
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New Template
-        </Button>
+        <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+          + New Template
+        </button>
       </div>
 
       {/* Search */}
       <div className="mb-6">
-        <Label htmlFor="search">Search Templates</Label>
-        <Input
+        <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+          Search Templates
+        </label>
+        <input
           id="search"
           type="text"
           placeholder="Search by name or description..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
+          className="max-w-md px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Total Templates</span>
-            <BookOpen className="h-4 w-4 text-blue-500" />
+            <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
           </div>
           <div className="text-2xl font-bold text-gray-900">{templates.length}</div>
           <p className="text-xs text-gray-500 mt-1">
             {templates.filter((t) => t.isActive).length} active
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Total Usage</span>
-            <Users className="h-4 w-4 text-green-500" />
+            <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
           </div>
           <div className="text-2xl font-bold text-gray-900">
             {templates.reduce((sum, t) => sum + t.timesUsed, 0)}
           </div>
           <p className="text-xs text-gray-500 mt-1">Paths generated</p>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Avg Duration</span>
-            <Clock className="h-4 w-4 text-purple-500" />
+            <svg className="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <div className="text-2xl font-bold text-gray-900">
             {Math.round(
@@ -161,24 +152,26 @@ export default function PathTemplatesPage() {
             d
           </div>
           <p className="text-xs text-gray-500 mt-1">Days per template</p>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Most Used</span>
-            <Target className="h-4 w-4 text-yellow-500" />
+            <svg className="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <div className="text-sm font-semibold text-gray-900 line-clamp-2">
             {templates.sort((a, b) => b.timesUsed - a.timesUsed)[0]?.name ||
               'N/A'}
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Templates List */}
       <div className="space-y-4">
         {filteredTemplates.map((template) => (
-          <Card key={template.id} className="p-6 hover:shadow-lg transition-shadow">
+          <div key={template.id} className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
@@ -186,29 +179,31 @@ export default function PathTemplatesPage() {
                     {template.name}
                   </h3>
                   {template.isActive ? (
-                    <Badge variant="default" className="bg-green-500">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
                       Active
-                    </Badge>
+                    </span>
                   ) : (
-                    <Badge variant="secondary">Inactive</Badge>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      Inactive
+                    </span>
                   )}
-                  <Badge variant="outline">{template.targetLevel}</Badge>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+                    {template.targetLevel}
+                  </span>
                 </div>
                 <p className="text-gray-600">{template.description}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
+                <button className="p-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button className="p-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -248,19 +243,21 @@ export default function PathTemplatesPage() {
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         ))}
 
         {filteredTemplates.length === 0 && (
-          <Card className="p-8 text-center">
-            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
+            <svg className="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               No templates found
             </h3>
             <p className="text-gray-600">
               Try adjusting your search or create a new template
             </p>
-          </Card>
+          </div>
         )}
       </div>
     </div>

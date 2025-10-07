@@ -257,7 +257,7 @@ export async function generateLearningPath(
     milestones.push({
       sequence: 0,
       title: 'Getting Started',
-      description: 'You've completed 25% of your learning path!',
+      description: "You have completed 25% of your learning path!",
       requiredStepIndices: Array.from({ length: milestone25Idx }, (_, i) => i),
       rewardType: 'BADGE',
       rewardData: { badgeId: 'early-progress', badgeName: 'Quick Learner' },
@@ -268,7 +268,7 @@ export async function generateLearningPath(
     milestones.push({
       sequence: 1,
       title: 'Halfway There',
-      description: 'You've completed 50% of your learning path! Keep going!',
+      description: "You have completed 50% of your learning path! Keep going!",
       requiredStepIndices: Array.from({ length: milestone50Idx }, (_, i) => i),
       rewardType: 'UNLOCK_EXAM',
       rewardData: { examType: 'PRACTICE_EXAM' },
@@ -278,7 +278,7 @@ export async function generateLearningPath(
     milestones.push({
       sequence: 2,
       title: 'Path Completed!',
-      description: 'Congratulations! You've completed your entire learning path.',
+      description: "Congratulations! You have completed your entire learning path.",
       requiredStepIndices: Array.from({ length: steps.length }, (_, i) => i),
       rewardType: 'CERTIFICATE',
       rewardData: { certificateType: 'PATH_COMPLETION' },
@@ -297,9 +297,7 @@ export async function generateLearningPath(
 
   // 9. Create path summary
   const pathName = `Personalized Path: ${orderedConcepts.length} Concepts`;
-  const pathDescription = `This learning path was created based on your assessment results.
-    You'll study ${orderedConcepts.length} concepts, starting with fundamentals and building
-    to more advanced topics. Estimated completion: ${estimatedDays} days at your current pace.`;
+  const pathDescription = `This learning path was created based on your assessment results. You will study ${orderedConcepts.length} concepts, starting with fundamentals and building to more advanced topics. Estimated completion: ${estimatedDays} days at your current pace.`;
 
   logger.info('Learning path generated', {
     userId: studentProfile.userId,
@@ -354,7 +352,7 @@ async function buildConceptNodes(
 function createExamReadyPath(studentProfile: StudentProfile): GeneratedPath {
   return {
     name: 'Exam Preparation Track',
-    description: 'Your assessment shows you're ready for the exam! This path focuses on exam strategy and full-length practice tests.',
+    description: 'Your assessment shows you are ready for the exam! This path focuses on exam strategy and full-length practice tests.',
     estimatedDays: 7,
     estimatedMinutes: 300,
     steps: [
@@ -391,7 +389,7 @@ function createExamReadyPath(studentProfile: StudentProfile): GeneratedPath {
       {
         sequence: 0,
         title: 'Exam Ready!',
-        description: 'You've completed your exam preparation. Schedule your exam!',
+        description: 'You have completed your exam preparation. Schedule your exam!',
         requiredStepIndices: [0, 1, 2, 3],
         rewardType: 'CERTIFICATE',
         rewardData: { certificateType: 'EXAM_READY' },

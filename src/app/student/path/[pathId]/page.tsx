@@ -11,20 +11,7 @@
  */
 
 import { useParams } from 'next/navigation';
-import { trpc } from '~/lib/trpc-client';
-import { Card } from '~/components/ui/card';
-import { Progress } from '~/components/ui/progress';
-import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
-import {
-  BookOpen,
-  Target,
-  Award,
-  CheckCircle,
-  Clock,
-  TrendingUp,
-  ChevronRight,
-} from 'lucide-react';
+import { trpc } from '@/lib/trpc-client';
 
 export default function PathViewPage() {
   const params = useParams();
@@ -52,9 +39,9 @@ export default function PathViewPage() {
   if (!pathData) {
     return (
       <div className="container mx-auto p-6">
-        <Card className="p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
           <p className="text-gray-600">Learning path not found</p>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -76,24 +63,33 @@ export default function PathViewPage() {
 
       {/* Progress Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Progress</span>
-            <Target className="h-4 w-4 text-blue-500" />
+            <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <div className="text-2xl font-bold text-gray-900">
             {progress.overallProgress.toFixed(0)}%
           </div>
-          <Progress value={progress.overallProgress} className="mt-2" />
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full"
+              style={{ width: `${progress.overallProgress}%` }}
+            />
+          </div>
           <p className="text-xs text-gray-500 mt-1">
             {progress.stepsCompleted} / {progress.stepsTotal} steps
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Study Time</span>
-            <Clock className="h-4 w-4 text-green-500" />
+            <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <div className="text-2xl font-bold text-gray-900">
             {Math.floor(progress.totalTimeSpent / 60)}h {progress.totalTimeSpent % 60}m
@@ -101,12 +97,14 @@ export default function PathViewPage() {
           <p className="text-xs text-gray-500 mt-1">
             {progress.estimatedTimeRemaining}m remaining
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Mastery</span>
-            <TrendingUp className="h-4 w-4 text-purple-500" />
+            <svg className="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
           </div>
           <div className="text-2xl font-bold text-gray-900">
             {progress.conceptsMastered}
@@ -114,36 +112,42 @@ export default function PathViewPage() {
           <p className="text-xs text-gray-500 mt-1">
             {progress.conceptsDeveloping} developing, {progress.conceptsWeak} weak
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Level & XP</span>
-            <Award className="h-4 w-4 text-yellow-500" />
+            <svg className="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
           <div className="text-2xl font-bold text-gray-900">
             Level {stats?.level || 1}
           </div>
-          <Progress
-            value={((stats?.xp || 0) % 1000) / 10}
-            className="mt-2"
-          />
+          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div
+              className="bg-yellow-600 h-2 rounded-full"
+              style={{ width: `${stats ? ((stats.xp % 1000) / 1000) * 100 : 0}%` }}
+            />
+          </div>
           <p className="text-xs text-gray-500 mt-1">
             {stats?.xpToNextLevel || 0} XP to next level
           </p>
-        </Card>
+        </div>
       </div>
 
       {/* Current Step */}
       {currentStep && (
-        <Card className="p-6 mb-8 border-2 border-blue-500">
+        <div className="bg-white rounded-lg shadow-sm border-2 border-blue-500 p-6 mb-8">
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Badge variant="default" className="bg-blue-500">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500 text-white">
                   Current Step
-                </Badge>
-                <Badge variant="outline">{currentStep.type}</Badge>
+                </span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+                  {currentStep.type}
+                </span>
               </div>
               <h2 className="text-2xl font-bold text-gray-900">
                 {currentStep.title}
@@ -177,12 +181,12 @@ export default function PathViewPage() {
           {currentStep.type === 'ASSESSMENT' && (
             <AssessmentStep stepId={currentStep.id} pathId={pathId} />
           )}
-        </Card>
+        </div>
       )}
 
       {/* Upcoming Steps */}
       {nextSteps.length > 0 && (
-        <Card className="p-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Coming Up Next
           </h3>
@@ -205,14 +209,16 @@ export default function PathViewPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Milestones */}
       {path.milestones && path.milestones.length > 0 && (
-        <Card className="p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Award className="h-5 w-5 text-yellow-500" />
+            <svg className="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
             Milestones ({progress.milestonesUnlocked} / {progress.milestonesTotal})
           </h3>
           <div className="space-y-3">
@@ -227,7 +233,9 @@ export default function PathViewPage() {
               >
                 <div className="flex-shrink-0">
                   {milestone.status === 'UNLOCKED' ? (
-                    <CheckCircle className="h-6 w-6 text-green-500" />
+                    <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   ) : (
                     <div className="h-6 w-6 rounded-full border-2 border-gray-300" />
                   )}
@@ -238,15 +246,15 @@ export default function PathViewPage() {
                   </div>
                   <div className="text-sm text-gray-600">{milestone.description}</div>
                   {milestone.rewardType && (
-                    <Badge variant="outline" className="mt-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300 mt-2">
                       {milestone.rewardType}
-                    </Badge>
+                    </span>
                   )}
                 </div>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
     </div>
   );
@@ -266,21 +274,24 @@ function ConceptStudyStep({ stepId, pathId }: { stepId: string; pathId: string }
   return (
     <div className="mt-6">
       <div className="bg-blue-50 p-4 rounded-lg mb-4">
-        <BookOpen className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+        <svg className="h-8 w-8 text-blue-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
         <p className="text-center text-gray-700">
           Read through the concept materials and mark as complete when ready.
         </p>
       </div>
 
-      <Button
+      <button
         onClick={() => completeStudy.mutate({ stepId })}
         disabled={completeStudy.isPending}
-        size="lg"
-        className="w-full"
+        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium flex items-center justify-center"
       >
         {completeStudy.isPending ? 'Saving...' : 'Mark as Complete'}
-        <ChevronRight className="ml-2 h-5 w-5" />
-      </Button>
+        <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -300,17 +311,21 @@ function PracticeSetStep({
   return (
     <div className="mt-6">
       <div className="bg-purple-50 p-4 rounded-lg mb-4">
-        <Target className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+        <svg className="h-8 w-8 text-purple-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         <p className="text-center text-gray-700">
           Complete practice questions with {(requiredAccuracy * 100).toFixed(0)}%
           accuracy to advance.
         </p>
       </div>
 
-      <Button size="lg" className="w-full">
+      <button className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center">
         Start Practice
-        <ChevronRight className="ml-2 h-5 w-5" />
-      </Button>
+        <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -322,15 +337,17 @@ function CheckpointStep({ stepId, pathId }: { stepId: string; pathId: string }) 
   return (
     <div className="mt-6">
       <div className="bg-yellow-50 p-4 rounded-lg mb-4">
-        <Award className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+        <svg className="h-8 w-8 text-yellow-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
         <p className="text-center text-gray-700">
           Complete all previous steps to unlock this checkpoint.
         </p>
       </div>
 
-      <Button size="lg" className="w-full" disabled>
+      <button disabled className="w-full bg-gray-400 text-white py-3 px-4 rounded-lg cursor-not-allowed font-medium">
         Checkpoint Locked
-      </Button>
+      </button>
     </div>
   );
 }
@@ -342,16 +359,20 @@ function AssessmentStep({ stepId, pathId }: { stepId: string; pathId: string }) 
   return (
     <div className="mt-6">
       <div className="bg-green-50 p-4 rounded-lg mb-4">
-        <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+        <svg className="h-8 w-8 text-green-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         <p className="text-center text-gray-700">
           Take the final assessment to validate your knowledge.
         </p>
       </div>
 
-      <Button size="lg" className="w-full">
+      <button className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center">
         Start Assessment
-        <ChevronRight className="ml-2 h-5 w-5" />
-      </Button>
+        <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   );
 }

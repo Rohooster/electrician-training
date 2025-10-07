@@ -3,30 +3,10 @@
 /**
  * Admin Student Analytics Dashboard
  *
- * Provides comprehensive analytics for administrators:
- * - Student progress across all learning paths
- * - Mastery statistics by concept
- * - Completion rates and time-to-completion
- * - Exam readiness distribution
- * - Engagement metrics (streaks, study time)
+ * Provides comprehensive analytics for administrators
  */
 
 import { useState } from 'react';
-import { Card } from '~/components/ui/card';
-import { Badge } from '~/components/ui/badge';
-import { Button } from '~/components/ui/button';
-import { Progress } from '~/components/ui/progress';
-import {
-  Users,
-  TrendingUp,
-  Award,
-  Target,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  BarChart3,
-  BookOpen,
-} from 'lucide-react';
 
 export default function AdminStudentAnalytics() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
@@ -44,46 +24,8 @@ export default function AdminStudentAnalytics() {
     notReadyCount: 9,
   };
 
-  const topPerformers = [
-    {
-      id: '1',
-      name: 'John Doe',
-      level: 12,
-      pathsCompleted: 3,
-      overallProgress: 87,
-      estimatedExamScore: 92,
-      readiness: 'EXAM_READY',
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      level: 10,
-      pathsCompleted: 2,
-      overallProgress: 75,
-      estimatedExamScore: 85,
-      readiness: 'READY',
-    },
-    {
-      id: '3',
-      name: 'Bob Johnson',
-      level: 9,
-      pathsCompleted: 2,
-      overallProgress: 72,
-      estimatedExamScore: 81,
-      readiness: 'READY',
-    },
-  ];
-
-  const conceptMastery = [
-    { concept: 'Grounding & Bonding', avgMastery: 0.82, studentsCount: 145 },
-    { concept: 'Load Calculations', avgMastery: 0.71, studentsCount: 132 },
-    { concept: 'Wiring Methods', avgMastery: 0.78, studentsCount: 156 },
-    { concept: 'Overcurrent Protection', avgMastery: 0.65, studentsCount: 128 },
-    { concept: 'Motor Circuits', avgMastery: 0.58, studentsCount: 98 },
-  ];
-
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="p-6 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -97,11 +39,14 @@ export default function AdminStudentAnalytics() {
       {/* Time Range Selector */}
       <div className="flex gap-2 mb-6">
         {(['7d', '30d', '90d', 'all'] as const).map((range) => (
-          <Button
+          <button
             key={range}
-            variant={timeRange === range ? 'default' : 'outline'}
-            size="sm"
             onClick={() => setTimeRange(range)}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              timeRange === range
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
           >
             {range === '7d'
               ? 'Last 7 days'
@@ -110,16 +55,18 @@ export default function AdminStudentAnalytics() {
               : range === '90d'
               ? 'Last 90 days'
               : 'All time'}
-          </Button>
+          </button>
         ))}
       </div>
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-600">Total Students</span>
-            <Users className="h-5 w-5 text-blue-500" />
+            <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
           </div>
           <div className="text-3xl font-bold text-gray-900">
             {analytics.totalStudents}
@@ -127,14 +74,16 @@ export default function AdminStudentAnalytics() {
           <p className="text-xs text-gray-500 mt-1">
             {analytics.activePaths} active paths
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-600">
               Avg Completion
             </span>
-            <TrendingUp className="h-5 w-5 text-green-500" />
+            <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
           </div>
           <div className="text-3xl font-bold text-gray-900">
             {analytics.avgCompletionRate}%
@@ -142,26 +91,30 @@ export default function AdminStudentAnalytics() {
           <p className="text-xs text-gray-500 mt-1">
             {analytics.completedPaths} paths completed
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-600">
               Avg Study Time
             </span>
-            <Clock className="h-5 w-5 text-purple-500" />
+            <svg className="h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <div className="text-3xl font-bold text-gray-900">
             {Math.floor(analytics.avgStudyTime / 60)}h {analytics.avgStudyTime % 60}
             m
           </div>
           <p className="text-xs text-gray-500 mt-1">Per student</p>
-        </Card>
+        </div>
 
-        <Card className="p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-600">Exam Ready</span>
-            <Target className="h-5 w-5 text-yellow-500" />
+            <svg className="h-5 w-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
           <div className="text-3xl font-bold text-gray-900">
             {analytics.examReadyCount}
@@ -172,13 +125,15 @@ export default function AdminStudentAnalytics() {
             )}
             % of students
           </p>
-        </Card>
+        </div>
       </div>
 
       {/* Readiness Distribution */}
-      <Card className="p-6 mb-8">
+      <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
         <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-blue-500" />
+          <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
           Exam Readiness Distribution
         </h2>
         <div className="space-y-4">
@@ -194,10 +149,12 @@ export default function AdminStudentAnalytics() {
                 %)
               </span>
             </div>
-            <Progress
-              value={(analytics.examReadyCount / analytics.totalStudents) * 100}
-              className="h-3 bg-gray-200"
-            />
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-green-600 h-3 rounded-full"
+                style={{ width: `${(analytics.examReadyCount / analytics.totalStudents) * 100}%` }}
+              />
+            </div>
           </div>
 
           <div>
@@ -211,10 +168,12 @@ export default function AdminStudentAnalytics() {
                 %)
               </span>
             </div>
-            <Progress
-              value={(analytics.readyCount / analytics.totalStudents) * 100}
-              className="h-3 bg-gray-200"
-            />
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-blue-600 h-3 rounded-full"
+                style={{ width: `${(analytics.readyCount / analytics.totalStudents) * 100}%` }}
+              />
+            </div>
           </div>
 
           <div>
@@ -229,10 +188,12 @@ export default function AdminStudentAnalytics() {
                 %)
               </span>
             </div>
-            <Progress
-              value={(analytics.developingCount / analytics.totalStudents) * 100}
-              className="h-3 bg-gray-200"
-            />
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-yellow-600 h-3 rounded-full"
+                style={{ width: `${(analytics.developingCount / analytics.totalStudents) * 100}%` }}
+              />
+            </div>
           </div>
 
           <div>
@@ -246,116 +207,32 @@ export default function AdminStudentAnalytics() {
                 %)
               </span>
             </div>
-            <Progress
-              value={(analytics.notReadyCount / analytics.totalStudents) * 100}
-              className="h-3 bg-gray-200"
-            />
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-red-600 h-3 rounded-full"
+                style={{ width: `${(analytics.notReadyCount / analytics.totalStudents) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Top Performers */}
-        <Card className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Award className="h-5 w-5 text-yellow-500" />
-            Top Performers
-          </h2>
-          <div className="space-y-4">
-            {topPerformers.map((student, idx) => (
-              <div
-                key={student.id}
-                className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
-              >
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-500 text-white flex items-center justify-center font-bold">
-                  {idx + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-gray-900">
-                      {student.name}
-                    </span>
-                    <Badge
-                      variant="default"
-                      className={
-                        student.readiness === 'EXAM_READY'
-                          ? 'bg-green-500'
-                          : 'bg-blue-500'
-                      }
-                    >
-                      {student.readiness}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm text-gray-600">
-                    <div>
-                      <div className="text-xs text-gray-500">Level</div>
-                      <div className="font-medium">{student.level}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Progress</div>
-                      <div className="font-medium">{student.overallProgress}%</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Exam Score</div>
-                      <div className="font-medium">{student.estimatedExamScore}%</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Concept Mastery */}
-        <Card className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-purple-500" />
-            Concept Mastery Overview
-          </h2>
-          <div className="space-y-4">
-            {conceptMastery.map((concept) => (
-              <div key={concept.concept}>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="font-medium text-gray-700">
-                    {concept.concept}
-                  </span>
-                  <span className="text-gray-600">
-                    {(concept.avgMastery * 100).toFixed(0)}% ({concept.studentsCount}{' '}
-                    students)
-                  </span>
-                </div>
-                <Progress
-                  value={concept.avgMastery * 100}
-                  className="h-2"
-                />
-                {concept.avgMastery < 0.7 && (
-                  <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    Needs attention
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
 
-      {/* At-Risk Students */}
-      <Card className="p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-red-500" />
-          Students Needing Support
-        </h2>
-        <p className="text-gray-600 mb-4">
-          Students with low progress or engagement who may need intervention
-        </p>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
-          <p>
-            Feature in development: This section will show students with low streaks,
-            stalled progress, or poor performance metrics.
-          </p>
+      {/* Feature Note */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <div className="flex items-start gap-3">
+          <svg className="h-6 w-6 text-yellow-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <h3 className="text-sm font-semibold text-yellow-900 mb-1">
+              Analytics Dashboard In Development
+            </h3>
+            <p className="text-sm text-yellow-800">
+              This dashboard shows mock data. In production, this will display real-time student analytics including top performers, concept mastery breakdown, at-risk students, and detailed engagement metrics.
+            </p>
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

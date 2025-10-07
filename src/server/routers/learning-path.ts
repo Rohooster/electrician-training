@@ -12,10 +12,10 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
-import { generateLearningPath, type StudentProfile, type DiagnosticReport } from '~/lib/learning-path/path-generator';
-import { calculatePathProgress, canAdvanceToNextStep, updateStudentStreak } from '~/lib/learning-path/progress-tracker';
-import { calculateConceptMastery } from '~/lib/learning-path/mastery-calculator';
-import { checkAndUnlockMilestones, awardStepCompletion, getStudentProgress } from '~/lib/learning-path/milestone-engine';
+import { generateLearningPath, type StudentProfile, type DiagnosticReport } from '@/lib/learning-path/path-generator';
+import { calculatePathProgress, canAdvanceToNextStep, updateStudentStreak } from '@/lib/learning-path/progress-tracker';
+import { calculateConceptMastery } from '@/lib/learning-path/mastery-calculator';
+import { checkAndUnlockMilestones, awardStepCompletion, getStudentProgress } from '@/lib/learning-path/milestone-engine';
 
 export const learningPathRouter = router({
   /**
