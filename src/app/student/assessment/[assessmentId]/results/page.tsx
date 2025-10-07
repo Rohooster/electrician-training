@@ -21,7 +21,12 @@ export default function AssessmentResultsPage({ params }: { params: { assessment
       router.push(`/student/path/${data.id}`);
     },
     onError: (error) => {
-      alert(`Failed to generate learning path: ${error.message}`);
+      if (error.data?.code === 'UNAUTHORIZED') {
+        // Redirect to sign in with return path
+        router.push(`/auth/signin?callbackUrl=/student/assessment/${assessmentId}/results`);
+      } else {
+        alert(`Failed to generate learning path: ${error.message}`);
+      }
     },
   });
 

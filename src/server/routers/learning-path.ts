@@ -165,6 +165,192 @@ export const learningPathRouter = createTRPCRouter({
     }),
 
   /**
+   * Generate learning path from assessment (simplified version)
+   * Works for anonymous users but requires auth to create path
+   */
+  generateFromAssessment: publicProcedure
+    .input(z.object({ assessmentId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { assessmentId } = input;
+
+      // Check if user is authenticated
+      if (!ctx.user) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Please sign in to generate a learning path',
+        });
+      }
+
+      // Get assessment results
+      const assessment = await ctx.prisma.adaptiveAssessment.findUnique({
+        where: { id: assessmentId },
+        include: {
+          responses: {
+            orderBy: { sequence: 'asc' },
+            include: {
+              item: {
+                include: {
+                  concepts: {
+                    include: {
+                      concept: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          jurisdiction: true,
+        },
+      });
+
+      if (!assessment) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Assessment not found',
+        });
+      }
+
+      if (!assessment.finalTheta || !assessment.finalSE) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Assessment not completed',
+        });
+      }
+
+      // Calculate weak concepts from responses
+      const topicPerf = new Map<string, { correct: number; total: number }>();
+      for (const response of assessment.responses) {
+        const topic = response.item.topic;
+        if (!topicPerf.has(topic)) {
+          topicPerf.set(topic, { correct: 0, total: 0 });
+        }
+        const perf = topicPerf.get(topic)!;
+        perf.total++;
+        if (response.isCorrect) {
+          perf.correct++;
+        }
+      }
+
+      const weakConcepts = Array.from(topicPerf.entries())
+        .filter(([_, perf]) => perf.correct / perf.total < 0.6)
+        .map(([topic, perf]) => ({
+          topic,
+          accuracy: perf.correct / perf.total,
+          recommendPractice: true,
+        }));
+
+      const strongConcepts = Array.from(topicPerf.entries())
+        .filter(([_, perf]) => perf.correct / perf.total >= 0.8)
+        .map(([topic, perf]) => ({
+          topic,
+          accuracy: perf.correct / perf.total,
+        }));
+
+      // Build diagnostic report
+      const diagnosticReport: DiagnosticReport = {
+        finalAbility: assessment.finalTheta,
+        finalSE: assessment.finalSE,
+        confidenceInterval95: [
+          assessment.finalTheta - 1.96 * assessment.finalSE,
+          assessment.finalTheta + 1.96 * assessment.finalSE,
+        ],
+        questionsAsked: assessment.questionsAsked,
+        topicPerformance: Array.from(topicPerf.entries()).map(([topic, perf]) => ({
+          topic,
+          questionsAsked: perf.total,
+          correctCount: perf.correct,
+          accuracy: perf.correct / perf.total,
+          estimatedAbility: assessment.finalTheta,
+        })),
+        weakConcepts,
+        strongConcepts,
+        estimatedExamScore: Math.max(0, Math.min(100, 70 + assessment.finalTheta * 15)),
+        readinessLevel: 'DEVELOPING',
+      };
+
+      // Get or create student profile
+      let studentProfile = await ctx.prisma.studentProfile.findUnique({
+        where: { userId: ctx.user.id },
+      });
+
+      if (!studentProfile) {
+        studentProfile = await ctx.prisma.studentProfile.create({
+          data: {
+            userId: ctx.user.id,
+            overallTheta: assessment.finalTheta,
+            overallSE: assessment.finalSE,
+            pace: 'MEDIUM',
+            dailyGoalMinutes: 30,
+          },
+        });
+      }
+
+      const profile: StudentProfile = {
+        userId: ctx.user.id,
+        overallTheta: studentProfile.overallTheta,
+        pace: 'MEDIUM' as 'SLOW' | 'MEDIUM' | 'FAST',
+        dailyGoalMinutes: 30,
+      };
+
+      // Generate learning path
+      const generatedPath = await generateLearningPath(
+        ctx.prisma,
+        diagnosticReport,
+        profile,
+        assessment.jurisdictionId
+      );
+
+      // Create path in database
+      const learningPath = await ctx.prisma.learningPath.create({
+        data: {
+          userId: ctx.user.id,
+          jurisdictionId: assessment.jurisdictionId,
+          name: generatedPath.name,
+          description: generatedPath.description,
+          status: 'ACTIVE',
+          estimatedDays: generatedPath.estimatedDays,
+          steps: {
+            create: generatedPath.steps.map((step) => ({
+              sequence: step.sequence,
+              type: step.type,
+              conceptId: step.conceptId,
+              title: step.title,
+              description: step.description,
+              estimatedMinutes: step.estimatedMinutes,
+              requiredAccuracy: step.requiredAccuracy,
+              metadata: step.metadata || {},
+              status: step.sequence === 0 ? 'IN_PROGRESS' : 'LOCKED',
+            })),
+          },
+          milestones: {
+            create: generatedPath.milestones.map((milestone) => ({
+              sequence: milestone.sequence,
+              title: milestone.title,
+              description: milestone.description,
+              requiredSteps: milestone.requiredStepIndices,
+              rewardType: milestone.rewardType,
+              rewardData: milestone.rewardData || {},
+              status: 'LOCKED',
+            })),
+          },
+        },
+        include: {
+          steps: true,
+          milestones: true,
+        },
+      });
+
+      return {
+        id: learningPath.id,
+        name: learningPath.name,
+        description: learningPath.description,
+        estimatedDays: learningPath.estimatedDays,
+        stepsCount: learningPath.steps.length,
+        milestonesCount: learningPath.milestones.length,
+      };
+    }),
+
+  /**
    * Get learning path with current progress
    */
   getPath: protectedProcedure

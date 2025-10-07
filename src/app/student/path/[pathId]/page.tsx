@@ -10,7 +10,7 @@
  * - Shows milestones and achievements
  */
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc-client';
 
 export default function PathViewPage() {
@@ -308,6 +308,8 @@ function PracticeSetStep({
   pathId: string;
   requiredAccuracy: number;
 }) {
+  const router = useRouter();
+
   return (
     <div className="mt-6">
       <div className="bg-purple-50 p-4 rounded-lg mb-4">
@@ -320,7 +322,10 @@ function PracticeSetStep({
         </p>
       </div>
 
-      <button className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center">
+      <button
+        onClick={() => router.push(`/student/path/${pathId}/practice/${stepId}`)}
+        className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center"
+      >
         Start Practice
         <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
