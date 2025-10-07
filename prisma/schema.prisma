@@ -15,27 +15,28 @@ datasource db {
 // ============================================================================
 
 model User {
-  id            String          @id @default(cuid())
-  email         String          @unique
+  id            String    @id @default(cuid())
+  email         String    @unique
   name          String?
   emailVerified DateTime?
   image         String?
-  role          UserRole        @default(STUDENT)
+  role          UserRole  @default(STUDENT)
 
-  accounts      Account[]
-  sessions      Session[]
+  accounts Account[]
+  sessions Session[]
 
   // Student-specific relations
-  examSittings  ExamSitting[]
-  drills        Drill[]
-  abilitySnapshots AbilitySnapshot[]
-  topicMastery  TopicMastery[]
-  learningPaths LearningPath[]
-  conceptMastery ConceptMastery[]
+  examSittings        ExamSitting[]
+  drills              Drill[]
+  abilitySnapshots    AbilitySnapshot[]
+  topicMastery        TopicMastery[]
+  learningPaths       LearningPath[]
+  conceptMastery      ConceptMastery[]
   adaptiveAssessments AdaptiveAssessment[]
+  studentProfile      StudentProfile?
 
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -91,86 +92,87 @@ model VerificationToken {
 // ============================================================================
 
 model Jurisdiction {
-  id                String        @id @default(cuid())
-  slug              String        @unique // e.g., "ca-general-electrician"
-  name              String        // e.g., "California General Electrician"
-  state             String        // e.g., "CA"
-  certType          String        // e.g., "Journeyman", "General Electrician"
+  id       String @id @default(cuid())
+  slug     String @unique // e.g., "ca-general-electrician"
+  name     String // e.g., "California General Electrician"
+  state    String // e.g., "CA"
+  certType String // e.g., "Journeyman", "General Electrician"
 
   // Code editions used by this jurisdiction
-  codeEditionId     String
-  codeEdition       CodeEdition   @relation(fields: [codeEditionId], references: [id])
+  codeEditionId String
+  codeEdition   CodeEdition @relation(fields: [codeEditionId], references: [id])
 
   // Exam rules for this jurisdiction
-  ruleSetId         String        @unique
-  ruleSet           RuleSet       @relation(fields: [ruleSetId], references: [id])
+  ruleSetId String  @unique
+  ruleSet   RuleSet @relation(fields: [ruleSetId], references: [id])
 
   // Blueprint weights define content distribution
-  blueprintWeights  Json          // { "definitions": 0.15, "conductor_sizing": 0.20, ... }
+  blueprintWeights Json // { "definitions": 0.15, "conductor_sizing": 0.20, ... }
 
-  items             Item[]
-  calcTemplates     CalcTemplate[]
-  examForms         ExamForm[]
-  concepts          Concept[]
+  items               Item[]
+  calcTemplates       CalcTemplate[]
+  examForms           ExamForm[]
+  concepts            Concept[]
   adaptiveAssessments AdaptiveAssessment[]
+  pathTemplates       PathTemplate[]
 
-  isActive          Boolean       @default(true)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("jurisdictions")
 }
 
 model CodeEdition {
-  id                String          @id @default(cuid())
-  slug              String          @unique // e.g., "cec-2022-nec-2020"
-  name              String          // e.g., "CEC 2022 (NEC 2020 base)"
-  baseCode          String          // "NEC"
-  baseYear          Int             // 2020
-  stateAmendment    String?         // "CEC"
-  amendmentYear     Int?            // 2022
-  effectiveDate     DateTime?
+  id             String    @id @default(cuid())
+  slug           String    @unique // e.g., "cec-2022-nec-2020"
+  name           String // e.g., "CEC 2022 (NEC 2020 base)"
+  baseCode       String // "NEC"
+  baseYear       Int // 2020
+  stateAmendment String? // "CEC"
+  amendmentYear  Int? // 2022
+  effectiveDate  DateTime?
 
-  jurisdictions     Jurisdiction[]
-  items             Item[]
+  jurisdictions Jurisdiction[]
+  items         Item[]
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("code_editions")
 }
 
 // RuleSet centralizes CIB (Candidate Information Bulletin) rules for each jurisdiction/vendor combo
 model RuleSet {
-  id                    String        @id @default(cuid())
+  id String @id @default(cuid())
 
   // Exam format
-  examVendor            String        // "PSI"
-  questionCount         Int           // 100
-  timeLimitMinutes      Int           // 240 (4 hours)
-  passThresholdPercent  Float         // 70.0
+  examVendor           String // "PSI"
+  questionCount        Int // 100
+  timeLimitMinutes     Int // 240 (4 hours)
+  passThresholdPercent Float // 70.0
 
   // Allowed materials (CIB rules)
-  allowedCodeBooks      Json          // ["NEC 2020", "CEC 2022"]
-  allowedCalculator     Boolean       @default(true)
-  calculatorTypes       Json?         // ["basic", "scientific"] (no programmable)
-  allowTabbing          Boolean       @default(true)
-  allowHighlighting     Boolean       @default(true)
-  allowNotes            Boolean       @default(false)
+  allowedCodeBooks  Json // ["NEC 2020", "CEC 2022"]
+  allowedCalculator Boolean @default(true)
+  calculatorTypes   Json? // ["basic", "scientific"] (no programmable)
+  allowTabbing      Boolean @default(true)
+  allowHighlighting Boolean @default(true)
+  allowNotes        Boolean @default(false)
 
   // Retake & scheduling policies
-  retakeWaitDays        Int?          // 14 days
-  rescheduleHoursBefore Int?          // 24 hours
-  maxAttemptsPerYear    Int?          // null = unlimited
+  retakeWaitDays        Int? // 14 days
+  rescheduleHoursBefore Int? // 24 hours
+  maxAttemptsPerYear    Int? // null = unlimited
 
   // Misc rules
-  earlyArrivalMinutes   Int           @default(30)
-  roomScanRequired      Boolean       @default(false) // online proctoring
+  earlyArrivalMinutes Int     @default(30)
+  roomScanRequired    Boolean @default(false) // online proctoring
 
-  jurisdiction          Jurisdiction?
+  jurisdiction Jurisdiction?
 
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("rule_sets")
 }
@@ -180,56 +182,57 @@ model RuleSet {
 // ============================================================================
 
 model Item {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
   // Jurisdictional assignment
-  jurisdictionId    String
-  jurisdiction      Jurisdiction    @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
+  jurisdictionId String
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
 
-  codeEditionId     String
-  codeEdition       CodeEdition     @relation(fields: [codeEditionId], references: [id])
+  codeEditionId String
+  codeEdition   CodeEdition @relation(fields: [codeEditionId], references: [id])
 
   // Item content
-  stem              String          // Question text
-  optionA           String
-  optionB           String
-  optionC           String
-  optionD           String
-  correctAnswer     String          // "A" | "B" | "C" | "D"
-  explanation       String?         // Rationale for correct answer
+  stem          String // Question text
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctAnswer String // "A" | "B" | "C" | "D"
+  explanation   String? // Rationale for correct answer
 
   // Metadata & classification
-  vendorStyle       String          // "PSI" - vendor-specific formatting
-  topic             String          // "conductor_sizing", "grounding_bonding", etc.
-  cognitive         CognitiveType   // "lookup" | "calc" | "theory"
-  difficulty        DifficultyLevel @default(MEDIUM)
+  vendorStyle String // "PSI" - vendor-specific formatting
+  topic       String // "conductor_sizing", "grounding_bonding", etc.
+  cognitive   CognitiveType // "lookup" | "calc" | "theory"
+  difficulty  DifficultyLevel @default(MEDIUM)
 
   // Code references (critical for edition agility)
-  necArticleRefs    Json            // ["310.16", "Table 310.16", "240.4(D)"]
-  cecAmendmentRefs  Json?           // CA-specific amendments
+  necArticleRefs   Json // ["310.16", "Table 310.16", "240.4(D)"]
+  cecAmendmentRefs Json? // CA-specific amendments
 
   // IRT parameters (Item Response Theory for adaptive testing)
-  irtA              Float?          // Discrimination parameter (0.5-2.5)
-  irtB              Float?          // Difficulty parameter (-3 to +3)
-  irtC              Float?          // Guessing parameter (typically 0.25 for 4-option MC)
+  irtA Float? // Discrimination parameter (0.5-2.5)
+  irtB Float? // Difficulty parameter (-3 to +3)
+  irtC Float? // Guessing parameter (typically 0.25 for 4-option MC)
 
   // Usage tracking
-  timesUsed         Int             @default(0)
-  avgTimeSeconds    Float?          // Average time to answer
+  timesUsed      Int    @default(0)
+  avgTimeSeconds Float? // Average time to answer
 
   // Telemetry for lookup items
-  avgLookupTime     Float?          // Time to first code panel open
+  avgLookupTime Float? // Time to first code panel open
 
   responses         Response[]
   formItems         FormItem[]
   embedding         ItemEmbedding?
   concepts          ConceptItem[]
   pathSteps         LearningPathStep[]
-  calcTemplates     CalcTemplate[]  @relation("CalcTemplateToItem")
+  calcTemplates     CalcTemplate[]     @relation("CalcTemplateToItem")
+  adaptiveResponses AdaptiveResponse[]
 
-  isActive          Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([jurisdictionId, topic])
   @@index([cognitive])
@@ -237,9 +240,9 @@ model Item {
 }
 
 enum CognitiveType {
-  LOOKUP      // Requires code book navigation
-  CALC        // Calculation-based problem
-  THEORY      // Conceptual understanding
+  LOOKUP // Requires code book navigation
+  CALC // Calculation-based problem
+  THEORY // Conceptual understanding
 }
 
 enum DifficultyLevel {
@@ -253,30 +256,30 @@ enum DifficultyLevel {
 // ============================================================================
 
 model CalcTemplate {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  jurisdictionId    String
-  jurisdiction      Jurisdiction    @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
+  jurisdictionId String
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
 
-  slug              String          @unique // "dwelling-service-standard-calc"
-  name              String          // "Dwelling Service Calculation (Standard Method)"
-  category          String          // "service_calc", "conductor_sizing", "conduit_fill", etc.
+  slug     String @unique // "dwelling-service-standard-calc"
+  name     String // "Dwelling Service Calculation (Standard Method)"
+  category String // "service_calc", "conductor_sizing", "conduit_fill", etc.
 
   // Template definition
-  parameterSchema   Json            // { "dwelling_area_sqft": { "min": 1000, "max": 5000, "step": 100 }, ... }
-  solutionAlgorithm Json            // Step-by-step calculation logic
+  parameterSchema   Json // { "dwelling_area_sqft": { "min": 1000, "max": 5000, "step": 100 }, ... }
+  solutionAlgorithm Json // Step-by-step calculation logic
 
   // Code references
-  necArticleRefs    Json            // ["220.82", "220.83", "Table 220.82"]
+  necArticleRefs Json // ["220.82", "220.83", "Table 220.82"]
 
   // For seeded generation
-  seedMultiplier    Int             @default(1000) // Deterministic seed base
+  seedMultiplier Int @default(1000) // Deterministic seed base
 
-  generatedItems    Item[]          @relation("CalcTemplateToItem")
+  generatedItems Item[] @relation("CalcTemplateToItem")
 
-  isActive          Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("calc_templates")
 }
@@ -290,43 +293,43 @@ model CalcTemplate {
 // ============================================================================
 
 model ExamForm {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  jurisdictionId    String
-  jurisdiction      Jurisdiction    @relation(fields: [jurisdictionId], references: [id])
+  jurisdictionId String
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
 
-  name              String          // "CA General Practice Test #1"
-  description       String?
+  name        String // "CA General Practice Test #1"
+  description String?
 
   // Form composition - items with position
-  formItems         FormItem[]
+  formItems FormItem[]
 
   // Metadata
-  targetDifficulty  Float?          // Target avg IRT b-param
-  blueprintMatch    Json            // How well this form matches blueprint weights
+  targetDifficulty Float? // Target avg IRT b-param
+  blueprintMatch   Json // How well this form matches blueprint weights
 
-  isPublished       Boolean         @default(false)
-  publishedAt       DateTime?
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
 
-  sittings          ExamSitting[]
+  sittings ExamSitting[]
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("exam_forms")
 }
 
 // Junction table: ExamForm <-> Item with position
 model FormItem {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  examFormId        String
-  examForm          ExamForm        @relation(fields: [examFormId], references: [id], onDelete: Cascade)
+  examFormId String
+  examForm   ExamForm @relation(fields: [examFormId], references: [id], onDelete: Cascade)
 
-  itemId            String
-  item              Item            @relation(fields: [itemId], references: [id])
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id])
 
-  position          Int             // Question order (1-100)
+  position Int // Question order (1-100)
 
   @@unique([examFormId, position])
   @@index([examFormId])
@@ -335,32 +338,32 @@ model FormItem {
 
 // ExamSitting = one student's attempt at an ExamForm
 model ExamSitting {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId            String
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  examFormId        String
-  examForm          ExamForm        @relation(fields: [examFormId], references: [id])
+  examFormId String
+  examForm   ExamForm @relation(fields: [examFormId], references: [id])
 
   // Sitting state
-  status            SittingStatus   @default(NOT_STARTED)
-  startedAt         DateTime?
-  submittedAt       DateTime?
-  timeLimitMinutes  Int             // Copied from RuleSet at start
+  status           SittingStatus @default(NOT_STARTED)
+  startedAt        DateTime?
+  submittedAt      DateTime?
+  timeLimitMinutes Int // Copied from RuleSet at start
 
   // Results
-  score             Float?          // Percent correct (0-100)
-  passed            Boolean?
+  score  Float? // Percent correct (0-100)
+  passed Boolean?
 
   // Responses
-  responses         Response[]
+  responses Response[]
 
   // Telemetry
-  codePanel         CodePanelLog[]  // Track code book usage
+  codePanel CodePanelLog[] // Track code book usage
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -371,29 +374,29 @@ enum SittingStatus {
   NOT_STARTED
   IN_PROGRESS
   SUBMITTED
-  EXPIRED        // Time ran out
+  EXPIRED // Time ran out
 }
 
 model Response {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  sittingId         String
-  sitting           ExamSitting     @relation(fields: [sittingId], references: [id], onDelete: Cascade)
+  sittingId String
+  sitting   ExamSitting @relation(fields: [sittingId], references: [id], onDelete: Cascade)
 
-  itemId            String
-  item              Item            @relation(fields: [itemId], references: [id])
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id])
 
-  selectedAnswer    String?         // "A" | "B" | "C" | "D" | null (unanswered)
-  isCorrect         Boolean?
+  selectedAnswer String? // "A" | "B" | "C" | "D" | null (unanswered)
+  isCorrect      Boolean?
 
-  timeSpentSeconds  Int?            // Time on this question
-  flaggedForReview  Boolean         @default(false)
+  timeSpentSeconds Int? // Time on this question
+  flaggedForReview Boolean @default(false)
 
   // Telemetry
-  revisionCount     Int             @default(0) // How many times answer changed
+  revisionCount Int @default(0) // How many times answer changed
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([sittingId, itemId])
   @@index([sittingId])
@@ -402,17 +405,17 @@ model Response {
 
 // Tracks when/how student opened code panel during exam
 model CodePanelLog {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  sittingId         String
-  sitting           ExamSitting     @relation(fields: [sittingId], references: [id], onDelete: Cascade)
+  sittingId String
+  sitting   ExamSitting @relation(fields: [sittingId], references: [id], onDelete: Cascade)
 
-  itemId            String?         // Which question was active
-  action            String          // "open", "search", "navigate"
-  targetArticle     String?         // e.g., "310.16"
-  searchQuery       String?
+  itemId        String? // Which question was active
+  action        String // "open", "search", "navigate"
+  targetArticle String? // e.g., "310.16"
+  searchQuery   String?
 
-  timestamp         DateTime        @default(now())
+  timestamp DateTime @default(now())
 
   @@index([sittingId])
   @@map("code_panel_logs")
@@ -423,37 +426,37 @@ model CodePanelLog {
 // ============================================================================
 
 model Drill {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId            String
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  drillType         DrillType       @default(ARTICLE_LOOKUP)
+  drillType DrillType @default(ARTICLE_LOOKUP)
 
   // Drill content
-  prompt            String          // "Find the minimum size THHN copper conductor for 60A at 75°C"
-  targetArticle     String          // "310.16"
-  targetTable       String?         // "Table 310.16"
-  targetSection     String?         // Specific subsection
+  prompt        String // "Find the minimum size THHN copper conductor for 60A at 75°C"
+  targetArticle String // "310.16"
+  targetTable   String? // "Table 310.16"
+  targetSection String? // Specific subsection
 
   // Student response
-  status            DrillStatus     @default(IN_PROGRESS)
+  status DrillStatus @default(IN_PROGRESS)
 
   // Path tracking
-  navigationPath    Json?           // ["Index", "Conductors", "310", "310.16", "Table 310.16"]
+  navigationPath Json? // ["Index", "Conductors", "310", "310.16", "Table 310.16"]
 
   // Timing
-  startedAt         DateTime        @default(now())
-  completedAt       DateTime?
-  timeSpentSeconds  Int?
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+  timeSpentSeconds Int?
 
   // Grading
-  isCorrect         Boolean?
-  articleMissBy     Int?            // If wrong, how many articles off?
-  efficiency        Float?          // Path efficiency score (0-1)
+  isCorrect     Boolean?
+  articleMissBy Int? // If wrong, how many articles off?
+  efficiency    Float? // Path efficiency score (0-1)
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -478,22 +481,22 @@ enum DrillStatus {
 
 // IRT-lite ability estimation (simplified Item Response Theory)
 model AbilitySnapshot {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId            String
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Ability estimate (theta in IRT, typically -3 to +3)
-  theta             Float           // Current ability estimate
-  standardError     Float           // Uncertainty in estimate
+  theta         Float // Current ability estimate
+  standardError Float // Uncertainty in estimate
 
   // Sample size
-  itemsAnswered     Int
+  itemsAnswered Int
 
   // Context
-  jurisdictionId    String?         // If jurisdiction-specific
+  jurisdictionId String? // If jurisdiction-specific
 
-  createdAt         DateTime        @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
   @@map("ability_snapshots")
@@ -501,28 +504,28 @@ model AbilitySnapshot {
 
 // Topic-level mastery tracking
 model TopicMastery {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId            String
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  topic             String          // "conductor_sizing", "grounding_bonding", etc.
+  topic String // "conductor_sizing", "grounding_bonding", etc.
 
   // Performance metrics
-  totalAttempts     Int             @default(0)
-  correctCount      Int             @default(0)
-  avgTimeSeconds    Float?
+  totalAttempts  Int    @default(0)
+  correctCount   Int    @default(0)
+  avgTimeSeconds Float?
 
   // Derived metrics
-  masteryPercent    Float           @default(0) // 0-100
+  masteryPercent Float @default(0) // 0-100
 
   // For lookup topics
-  avgLookupTime     Float?
-  lookupAccuracy    Float?
+  avgLookupTime  Float?
+  lookupAccuracy Float?
 
-  lastPracticed     DateTime        @default(now())
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  lastPracticed DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([userId, topic])
   @@index([userId, masteryPercent])
@@ -535,24 +538,24 @@ model TopicMastery {
 // Note: Run this SQL first: CREATE EXTENSION IF NOT EXISTS vector;
 
 model ItemEmbedding {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  itemId          String   @unique
-  item            Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String @unique
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   // Vector embedding stored as JSON for Prisma compatibility
   // In PostgreSQL, this will be vector(1536) type via raw SQL
-  embedding       Json     // Array of 1536 floats
+  embedding Json // Array of 1536 floats
 
   // Metadata for regeneration
-  embeddingModel  String   @default("text-embedding-ada-002")
-  embeddingSource String   @default("stem_explanation") // "stem_only", "stem_options", "stem_explanation"
+  embeddingModel  String @default("text-embedding-ada-002")
+  embeddingSource String @default("stem_explanation") // "stem_only", "stem_options", "stem_explanation"
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("item_embeddings")
   @@index([itemId])
+  @@map("item_embeddings")
 }
 
 // ============================================================================
@@ -560,63 +563,63 @@ model ItemEmbedding {
 // ============================================================================
 
 model Concept {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Basic info
-  slug            String   @unique // "grounding-electrode-conductor-sizing"
-  name            String   // "Grounding Electrode Conductor Sizing"
-  description     String   // Detailed explanation
+  slug        String @unique // "grounding-electrode-conductor-sizing"
+  name        String // "Grounding Electrode Conductor Sizing"
+  description String // Detailed explanation
 
   // Jurisdictional scope
-  jurisdictionId  String
-  jurisdiction    Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  jurisdictionId String
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
 
   // NEC references this concept covers
-  necArticleRefs  Json     // ["250.66", "Table 250.66"]
+  necArticleRefs Json // ["250.66", "Table 250.66"]
 
   // Concept classification
-  category        String   // "grounding_bonding", "conductor_sizing", etc.
+  category        String // "grounding_bonding", "conductor_sizing", etc.
   difficultyLevel DifficultyLevel @default(MEDIUM)
 
   // Estimated study time (minutes)
-  estimatedMinutes Int    @default(30)
+  estimatedMinutes Int @default(30)
 
   // Vector embedding stored as JSON for Prisma compatibility
-  embedding       Json?    // Array of 1536 floats
+  embedding Json? // Array of 1536 floats
 
   // Relations
-  items           ConceptItem[]
-  prerequisites   ConceptPrerequisite[] @relation("ConceptPrerequisites")
-  dependents      ConceptPrerequisite[] @relation("ConceptDependents")
-  pathSteps       LearningPathStep[]
-  userMastery     ConceptMastery[]
+  items         ConceptItem[]
+  prerequisites ConceptPrerequisite[] @relation("ConceptPrerequisites")
+  dependents    ConceptPrerequisite[] @relation("ConceptDependents")
+  pathSteps     LearningPathStep[]
+  userMastery   ConceptMastery[]
 
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("concepts")
   @@index([category])
   @@index([jurisdictionId])
+  @@map("concepts")
 }
 
 // Many-to-many: Items can cover multiple concepts
 model ConceptItem {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  conceptId       String
-  concept         Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId String
+  concept   Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
-  itemId          String
-  item            Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   // How well this item tests this concept (0-1)
-  relevanceScore  Float    @default(1.0)
+  relevanceScore Float @default(1.0)
 
   // Specific aspect of concept this item tests
-  aspect          String?  // "calculation", "code_lookup", "theory"
+  aspect String? // "calculation", "code_lookup", "theory"
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([conceptId, itemId])
   @@map("concept_items")
@@ -624,25 +627,25 @@ model ConceptItem {
 
 // Prerequisite graph (DAG - Directed Acyclic Graph)
 model ConceptPrerequisite {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // conceptId REQUIRES prerequisiteId
-  conceptId       String
-  concept         Concept  @relation("ConceptPrerequisites", fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId String
+  concept   Concept @relation("ConceptPrerequisites", fields: [conceptId], references: [id], onDelete: Cascade)
 
-  prerequisiteId  String
-  prerequisite    Concept  @relation("ConceptDependents", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+  prerequisiteId String
+  prerequisite   Concept @relation("ConceptDependents", fields: [prerequisiteId], references: [id], onDelete: Cascade)
 
   // Strength of prerequisite relationship (0-1)
   // 1.0 = must know, 0.5 = helpful but not required
-  strength        Float    @default(1.0)
+  strength Float @default(1.0)
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([conceptId, prerequisiteId])
-  @@map("concept_prerequisites")
   @@index([conceptId])
   @@index([prerequisiteId])
+  @@map("concept_prerequisites")
 }
 
 // ============================================================================
@@ -650,35 +653,40 @@ model ConceptPrerequisite {
 // ============================================================================
 
 model LearningPath {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Generation metadata
-  generatedFrom   String   // "adaptive_assessment", "topic_filter", "manual"
-  generationData  Json     // Stores weak concepts, assessment results, etc.
+  generatedFrom  String // "adaptive_assessment", "topic_filter", "manual", "template"
+  generationData Json // Stores weak concepts, assessment results, etc.
+
+  // Template source (if created from template)
+  templateId String?
+  template   PathTemplate? @relation(fields: [templateId], references: [id])
 
   // Path metadata
-  name            String   // "Personalized Path: Grounding & Bonding"
-  description     String?
-  estimatedHours  Float?   // Total estimated study time
+  name           String // "Personalized Path: Grounding & Bonding"
+  description    String?
+  estimatedHours Float? // Total estimated study time
 
   // Progress tracking
-  status          PathStatus @default(NOT_STARTED)
-  currentStepId   String?
-  startedAt       DateTime?
-  completedAt     DateTime?
+  status        PathStatus @default(NOT_STARTED)
+  currentStepId String?
+  startedAt     DateTime?
+  completedAt   DateTime?
 
-  steps           LearningPathStep[]
+  steps            LearningPathStep[]
+  milestones       PathMilestone[]
   sourceAssessment AdaptiveAssessment?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("learning_paths")
   @@index([userId])
   @@index([status])
+  @@map("learning_paths")
 }
 
 enum PathStatus {
@@ -689,59 +697,59 @@ enum PathStatus {
 }
 
 model LearningPathStep {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  pathId          String
-  path            LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  pathId String
+  path   LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
 
   // Step order in path
-  sequence        Int
+  sequence Int
 
   // What to study
-  conceptId       String?
-  concept         Concept? @relation(fields: [conceptId], references: [id])
+  conceptId String?
+  concept   Concept? @relation(fields: [conceptId], references: [id])
 
-  itemId          String?
-  item            Item?    @relation(fields: [itemId], references: [id])
+  itemId String?
+  item   Item?   @relation(fields: [itemId], references: [id])
 
   // Step type
-  stepType        StepType
+  stepType StepType
 
   // Step metadata
-  title           String   // "Review: Grounding Basics"
-  description     String?  // "Complete 5 practice questions on grounding fundamentals"
-  estimatedMinutes Int    @default(15)
+  title            String // "Review: Grounding Basics"
+  description      String? // "Complete 5 practice questions on grounding fundamentals"
+  estimatedMinutes Int     @default(15)
 
   // Completion tracking
-  status          StepStatus @default(LOCKED)
-  startedAt       DateTime?
-  completedAt     DateTime?
-  performanceScore Float?   // 0-1 score on this step
+  status           StepStatus @default(LOCKED)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  performanceScore Float? // 0-1 score on this step
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([pathId, sequence])
-  @@map("learning_path_steps")
   @@index([pathId])
   @@index([conceptId])
+  @@map("learning_path_steps")
 }
 
 enum StepType {
-  CONCEPT_REVIEW    // Read concept explanation
-  PRACTICE_ITEM     // Answer single question
-  PRACTICE_SET      // Answer set of questions
-  DRILL             // Timed NEC lookup drill
-  CALCULATION       // Calculation practice
-  ASSESSMENT        // Mini-assessment to validate mastery
+  CONCEPT_REVIEW // Read concept explanation
+  PRACTICE_ITEM // Answer single question
+  PRACTICE_SET // Answer set of questions
+  DRILL // Timed NEC lookup drill
+  CALCULATION // Calculation practice
+  ASSESSMENT // Mini-assessment to validate mastery
 }
 
 enum StepStatus {
-  LOCKED            // Prerequisites not met
-  AVAILABLE         // Ready to start
-  IN_PROGRESS       // Started but not completed
-  COMPLETED         // Finished successfully
-  SKIPPED           // User chose to skip
+  LOCKED // Prerequisites not met
+  AVAILABLE // Ready to start
+  IN_PROGRESS // Started but not completed
+  COMPLETED // Finished successfully
+  SKIPPED // User chose to skip
 }
 
 // ============================================================================
@@ -749,36 +757,36 @@ enum StepStatus {
 // ============================================================================
 
 model ConceptMastery {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  conceptId       String
-  concept         Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId String
+  concept   Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
   // Mastery metrics
-  masteryLevel    Float    @default(0.0) // 0-1 scale
-  confidence      Float    @default(0.5) // 0-1 scale (certainty of mastery estimate)
+  masteryLevel Float @default(0.0) // 0-1 scale
+  confidence   Float @default(0.5) // 0-1 scale (certainty of mastery estimate)
 
   // Performance data
-  totalAttempts   Int      @default(0)
-  correctCount    Int      @default(0)
-  avgTimeSeconds  Float?
+  totalAttempts  Int    @default(0)
+  correctCount   Int    @default(0)
+  avgTimeSeconds Float?
 
   // IRT-based ability estimate for this concept
-  theta           Float?   // -3 to +3 scale
+  theta Float? // -3 to +3 scale
 
   // Last practice
-  lastPracticed   DateTime?
+  lastPracticed DateTime?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, conceptId])
-  @@map("concept_mastery")
   @@index([userId])
   @@index([masteryLevel])
+  @@map("concept_mastery")
 }
 
 // ============================================================================
@@ -786,41 +794,226 @@ model ConceptMastery {
 // ============================================================================
 
 model AdaptiveAssessment {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  jurisdictionId  String
-  jurisdiction    Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  jurisdictionId String
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
 
-  // Assessment config
-  targetItems     Int      @default(20) // Adaptive test length
-  algorithm       String   @default("cat") // "cat" = Computerized Adaptive Testing
+  // Assessment config (IRT parameters)
+  minQuestions  Int    @default(10) // Minimum questions before termination
+  maxQuestions  Int    @default(25) // Maximum questions
+  seThreshold   Float  @default(0.3) // Standard error threshold for termination
+  startingTheta Float  @default(0.0) // Initial ability estimate
+  topicCoverage Json? // {topic: minQuestions} coverage requirements
+  algorithm     String @default("3pl") // "3pl" = 3-Parameter Logistic IRT
 
-  // Results
-  status          AssessmentStatus @default(IN_PROGRESS)
+  // Assessment state
+  status         AssessmentStatus @default(IN_PROGRESS)
+  currentTheta   Float            @default(0.0) // Current ability estimate
+  currentSE      Float            @default(999) // Current standard error
+  questionsAsked Int              @default(0)
 
-  // Identified weak concepts (vector similarity scores)
-  weakConcepts    Json?    // [{conceptId, score, confidence}]
+  // Final results
+  finalTheta     Float? // Final ability estimate (-3 to +3)
+  finalSE        Float? // Final standard error
+  topicAbilities Json? // {topic: theta} topic-specific abilities
+
+  // Identified weak concepts (for path generation)
+  weakConcepts Json? // [{conceptId, masteryLevel, priority}]
 
   // Generated learning path
-  generatedPathId String?  @unique
+  generatedPathId String?       @unique
   generatedPath   LearningPath? @relation(fields: [generatedPathId], references: [id])
 
-  startedAt       DateTime @default(now())
-  completedAt     DateTime?
+  // Detailed responses
+  responses AdaptiveResponse[]
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
 
-  @@map("adaptive_assessments")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([status])
+  @@index([jurisdictionId])
+  @@map("adaptive_assessments")
+}
+
+// Detailed responses for adaptive assessment (IRT state tracking)
+model AdaptiveResponse {
+  id String @id @default(cuid())
+
+  assessmentId String
+  assessment   AdaptiveAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  sequence Int // Question number (1, 2, 3, ...)
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id])
+
+  // IRT state BEFORE this question
+  thetaBefore Float // Ability estimate before question
+  seBefore    Float // Standard error before question
+  itemInfo    Float // Information this item provides at thetaBefore
+
+  // Student response
+  selectedAnswer String // 'A' | 'B' | 'C' | 'D'
+  isCorrect      Boolean
+  timeSeconds    Int
+
+  // IRT state AFTER incorporating response
+  thetaAfter Float // Updated ability estimate
+  seAfter    Float // Updated standard error
+
+  // Item parameters used (for reproducibility)
+  paramA Float // Discrimination parameter
+  paramB Float // Difficulty parameter
+  paramC Float // Guessing parameter
+
+  createdAt DateTime @default(now())
+
+  @@index([assessmentId, sequence])
+  @@map("adaptive_responses")
 }
 
 enum AssessmentStatus {
   IN_PROGRESS
   COMPLETED
   ABANDONED
+}
+
+// ============================================================================
+// PATH TEMPLATES & MILESTONES
+// ============================================================================
+
+// Admin-created reusable path templates
+model PathTemplate {
+  id String @id @default(cuid())
+
+  slug        String @unique // "beginner-to-journeyman"
+  name        String // "Beginner to Journeyman Track"
+  description String // Detailed explanation
+
+  jurisdictionId String
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+
+  // Target audience
+  targetLevel   String @default("BEGINNER") // "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+  estimatedDays Int    @default(30)
+
+  // Concept sequence (ordered by prerequisites)
+  conceptIds Json // [conceptId1, conceptId2, ...] topologically sorted
+
+  // Configuration
+  itemsPerConcept  Int   @default(10)
+  requiredAccuracy Float @default(0.7)
+
+  // Usage tracking
+  timesUsed         Int   @default(0)
+  avgCompletionRate Float @default(0)
+
+  // Related paths created from this template
+  paths LearningPath[]
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jurisdictionId])
+  @@index([targetLevel])
+  @@map("path_templates")
+}
+
+// Milestones within learning paths (checkpoints, rewards)
+model PathMilestone {
+  id String @id @default(cuid())
+
+  pathId String
+  path   LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+
+  sequence    Int // Order in path (1, 2, 3, ...)
+  title       String // "Completed Grounding Module"
+  description String // Detailed explanation
+
+  // Requirements
+  requiredSteps Json // [stepId1, stepId2, ...] steps that must be completed
+
+  // Reward
+  rewardType String? // "BADGE" | "UNLOCK_EXAM" | "CERTIFICATE"
+  rewardData Json? // {badgeId, examId, etc.}
+
+  // Status
+  status     String    @default("LOCKED") // "LOCKED" | "UNLOCKED" | "CLAIMED"
+  unlockedAt DateTime?
+  claimedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pathId, sequence])
+  @@index([pathId, sequence])
+  @@map("path_milestones")
+}
+
+// ============================================================================
+// STUDENT PROFILE & ANALYTICS
+// ============================================================================
+
+// Centralized student profile with all tracking data
+model StudentProfile {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Ability estimates (IRT)
+  overallTheta Float @default(0.0) // Overall ability (-3 to +3)
+  overallSE    Float @default(999) // Uncertainty in estimate
+  topicThetas  Json  @default("{}") // {topic: {theta, se, lastUpdated}}
+
+  // Concept mastery summary (aggregated from ConceptMastery)
+  totalConcepts      Int @default(0)
+  masteredConcepts   Int @default(0) // mastery >= 0.85
+  developingConcepts Int @default(0) // 0.40 < mastery < 0.85
+  noviceConcepts     Int @default(0) // mastery < 0.40
+
+  // Performance statistics
+  totalQuestionsAnswered Int   @default(0)
+  totalCorrect           Int   @default(0)
+  overallAccuracy        Float @default(0.0) // 0-1
+  avgTimePerQuestion     Float @default(0.0) // seconds
+
+  // Study time tracking
+  totalStudyMinutes Int       @default(0)
+  currentStreak     Int       @default(0) // Consecutive days studied
+  longestStreak     Int       @default(0)
+  lastStudyDate     DateTime?
+
+  // Gamification
+  level  Int  @default(1) // 1-50
+  xp     Int  @default(0)
+  badges Json @default("[]") // [{badgeId, earnedAt, ...}]
+
+  // Learning preferences
+  pace             String  @default("MEDIUM") // "SLOW" | "MEDIUM" | "FAST"
+  dailyGoalMinutes Int     @default(30)
+  preferredTime    String? // "MORNING" | "AFTERNOON" | "EVENING"
+  reminderEnabled  Boolean @default(true)
+  reminderTime     String? // "09:00" HH:mm format
+
+  // Exam readiness
+  estimatedExamScore Float? // Predicted score (0-100%)
+  readinessLevel     String @default("NOT_READY") // "NOT_READY" | "DEVELOPING" | "READY" | "EXAM_READY"
+  weakTopics         Json   @default("[]") // [{topic, masteryLevel}]
+  strongTopics       Json   @default("[]") // [{topic, masteryLevel}]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([readinessLevel])
+  @@map("student_profiles")
 }
