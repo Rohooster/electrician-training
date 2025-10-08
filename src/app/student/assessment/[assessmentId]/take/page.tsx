@@ -16,8 +16,11 @@ export default function TakeAssessmentPage({ params }: { params: { assessmentId:
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [timeStarted, setTimeStarted] = useState<number>(Date.now());
   const [questionHistory, setQuestionHistory] = useState<any[]>([]);
+  const [currentTheta, setCurrentTheta] = useState<number>(0);
+  const [currentSE, setCurrentSE] = useState<number>(1.0);
+  const [questionsAsked, setQuestionsAsked] = useState<number>(0);
 
-  // Get assessment state
+  // Get assessment state (only for initial load and validation)
   const { data: assessment, isLoading } = trpc.assessment.getAssessment.useQuery({
     assessmentId,
   });
@@ -33,6 +36,11 @@ export default function TakeAssessmentPage({ params }: { params: { assessmentId:
           isCorrect: data.isCorrect,
         },
       ]);
+
+      // Update real-time metrics
+      setCurrentTheta(data.currentTheta);
+      setCurrentSE(data.currentSE);
+      setQuestionsAsked(data.questionsAsked);
 
       if (data.complete) {
         // Assessment completed, clear storage and redirect to results
@@ -51,20 +59,25 @@ export default function TakeAssessmentPage({ params }: { params: { assessmentId:
     },
   });
 
-  // Load first question on mount
+  // Load first question on mount and initialize state
   useEffect(() => {
-    if (!currentQuestion) {
+    if (assessment && !currentQuestion) {
+      // Initialize metrics from assessment state
+      setCurrentTheta(assessment.currentTheta);
+      setCurrentSE(assessment.currentSE);
+      setQuestionsAsked(assessment.questionsAsked);
+
       // Try to load from sessionStorage
       const storedQuestion = sessionStorage.getItem(`assessment-${assessmentId}-current`);
       if (storedQuestion) {
         setCurrentQuestion(JSON.parse(storedQuestion));
-      } else if (assessment && assessment.responses.length === 0) {
+      } else if (assessment.responses.length === 0) {
         // No stored question and no responses - user refreshed or navigated directly
         alert('Please start a new assessment from the beginning.');
         router.push('/student/assessment/new');
       }
     }
-  }, [assessment, assessmentId]);
+  }, [assessment, assessmentId, currentQuestion, router]);
 
   const handleSubmit = () => {
     if (!selectedAnswer) return;
@@ -106,7 +119,7 @@ export default function TakeAssessmentPage({ params }: { params: { assessmentId:
     );
   }
 
-  const progress = ((currentQuestion.sequence + 1) / 20) * 100; // Assume max 20 questions
+  const progress = ((questionsAsked + 1) / 20) * 100; // Assume max 20 questions
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,10 +128,10 @@ export default function TakeAssessmentPage({ params }: { params: { assessmentId:
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">
-              Question {currentQuestion.sequence + 1}
+              Question {questionsAsked + 1}
             </span>
             <span className="text-sm text-gray-600">
-              {assessment.questionsAsked} answered
+              {questionsAsked} answered
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -206,7 +219,7 @@ export default function TakeAssessmentPage({ params }: { params: { assessmentId:
         </div>
 
         {/* Ability Indicator */}
-        {assessment.currentTheta !== undefined && (
+        {questionsAsked > 0 && (
           <div className="mt-6 bg-white rounded-lg shadow p-6">
             <h3 className="text-sm font-medium text-gray-700 mb-3">Current Performance</h3>
             <div className="flex items-center gap-4">
@@ -220,20 +233,20 @@ export default function TakeAssessmentPage({ params }: { params: { assessmentId:
                   <div
                     className="bg-blue-600 h-3 rounded-full transition-all duration-500"
                     style={{
-                      width: `${Math.min(100, Math.max(0, ((assessment.currentTheta + 3) / 6) * 100))}%`,
+                      width: `${Math.min(100, Math.max(0, ((currentTheta + 3) / 6) * 100))}%`,
                     }}
                   />
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-blue-600">
-                  {assessment.currentTheta.toFixed(2)}
+                  {currentTheta.toFixed(2)}
                 </div>
                 <div className="text-xs text-gray-500">Ability (θ)</div>
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-3">
-              Standard Error: {assessment.currentSE.toFixed(3)} • Lower is better
+              Standard Error: {currentSE.toFixed(3)} • Lower is better
             </p>
           </div>
         )}
